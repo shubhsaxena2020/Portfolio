@@ -154,7 +154,7 @@ function TierCard({ tier, tiltEnabled }: { tier: Tier; tiltEnabled: boolean }) {
         )}
 
         {tier.featured && (
-          <span className="absolute -top-3 left-7 rounded-full bg-signal px-3 py-1 font-mono text-[10px] font-medium uppercase tracking-wider text-white z-10">
+          <span className="absolute -top-3 left-7 rounded-full bg-signal px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-ink z-10 shadow-lg shadow-signal/20">
             Most picked
           </span>
         )}
@@ -288,7 +288,7 @@ export default function Services() {
   }, []);
 
   return (
-    <section ref={rootRef} id="services" className="py-24 sm:py-32">
+    <section ref={rootRef} id="services" className="py-24 sm:py-32 ambient-glow-section">
       <div className="container">
         <p data-reveal className="font-mono text-xs uppercase tracking-[0.25em] text-muted">
           WHAT I BUILD

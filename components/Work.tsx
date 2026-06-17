@@ -22,22 +22,30 @@ import { usePrefersReducedMotion } from "@/lib/reduced-motion";
 
 function BrandTile({ project }: { project: Project }) {
   return (
-    <div className="relative flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,var(--color-ink),var(--color-ink-2))]">
+    <div className="relative flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#020204,#0d0e15)]">
       <div
         aria-hidden="true"
-        className="absolute inset-0 opacity-70"
+        className="absolute inset-0 opacity-80"
         style={{
           background:
-            "radial-gradient(120% 90% at 15% 10%, color-mix(in srgb, var(--color-signal) 38%, transparent), transparent 55%)",
+            "radial-gradient(120% 90% at 15% 10%, color-mix(in srgb, var(--color-signal) 25%, transparent), transparent 60%)",
         }}
       />
       <div
         aria-hidden="true"
-        className="grid-bg absolute inset-0 opacity-20"
+        className="absolute inset-0 opacity-40"
+        style={{
+          background:
+            "radial-gradient(100% 80% at 85% 90%, color-mix(in srgb, var(--color-signal-2) 18%, transparent), transparent 60%)",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="grid-bg absolute inset-0 opacity-15"
       />
       <span className="relative font-display text-3xl font-bold tracking-tight text-paper sm:text-4xl">
         {project.wordmark}
-        <span className="text-signal-2">.</span>
+        <span className="text-signal">.</span>
       </span>
     </div>
   );
@@ -239,7 +247,7 @@ export default function Work() {
   }, []);
 
   return (
-    <section ref={rootRef} id="work" className="py-24 sm:py-32">
+    <section ref={rootRef} id="work" className="py-24 sm:py-32 ambient-glow-section">
       <div className="container">
         <p data-reveal className="font-mono text-xs uppercase tracking-[0.25em] text-muted">
           SELECTED BUILDS

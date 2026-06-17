@@ -62,12 +62,28 @@ export default function Hero() {
       eyebrow.style.opacity = "0";
       eyebrow.style.transform = "translateY(8px)";
     }
+    
+    const words = Array.from(root.querySelectorAll<HTMLElement>(".hover-word"));
+    const chars = Array.from(root.querySelectorAll<HTMLElement>(".hover-char"));
+
     lines.forEach((l) => {
-      l.style.opacity = "0";
-      l.style.filter = "blur(8px)";
-      l.style.transform = "translateY(24px)";
-      l.style.color = "var(--color-muted)";
+      l.style.perspective = "800px";
+      l.style.transformStyle = "preserve-3d";
     });
+
+    words.forEach((w) => {
+      w.style.opacity = "0";
+      w.style.transform = "translate3d(0, 35px, -180px) rotateX(-50deg) rotateY(-15deg)";
+      w.style.filter = "blur(12px)";
+    });
+
+    chars.forEach((c) => {
+      c.style.opacity = "0";
+      c.style.transform = "translate3d(0, 35px, -180px) rotateX(-50deg) rotateY(-15deg)";
+      c.style.filter = "blur(12px)";
+      c.style.textShadow = "0 0 15px var(--color-signal)";
+    });
+
     reveals.forEach((r) => {
       r.style.opacity = "0";
       r.style.transform = "translateY(16px)";
@@ -128,19 +144,37 @@ export default function Hero() {
           '&gt; <span style="color:var(--color-signal)">ready</span>';
       }, "+=0.15");
 
-      // 3. headline lines assemble: rise + un-blur, stagger
-      tl.to(
-        lines,
-        {
-          opacity: 1,
-          filter: "blur(0px)",
-          y: 0,
-          color: "", // back to inherited (paper, or the inline signal spans)
-          duration: 0.6,
-          stagger: 0.12,
-        },
-        "+=0.05"
-      );
+      // 3. headline words & chars assemble: 3D float and elastic bounce
+      if (words.length > 0) {
+        tl.to(
+          words,
+          {
+            opacity: 1,
+            transform: "translate3d(0,0,0) rotateX(0deg) rotateY(0deg)",
+            filter: "blur(0px)",
+            duration: 0.8,
+            stagger: 0.04,
+            ease: "back.out(1.2)",
+          },
+          "+=0.05"
+        );
+      }
+
+      if (chars.length > 0) {
+        tl.to(
+          chars,
+          {
+            opacity: 1,
+            transform: "translate3d(0,0,0) rotateX(0deg) rotateY(0deg)",
+            filter: "blur(0px)",
+            textShadow: "0 0 0px rgba(0,0,0,0)",
+            duration: 0.8,
+            stagger: 0.03,
+            ease: "back.out(1.4)",
+          },
+          "-=0.55"
+        );
+      }
 
       // 4. signal rule sweeps to finish the build
       if (rule) {

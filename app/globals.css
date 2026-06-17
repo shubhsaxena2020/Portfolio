@@ -6,17 +6,17 @@
    undertones, luminous indigo signal, frosted glass surfaces.
    ───────────────────────────────────────────────────────────── */
 @theme {
-  --color-ink: #04060a;
-  --color-ink-2: #090e17;
-  --color-paper: #e8eaed;
-  --color-surface: #0f172a;
-  --color-surface-raised: #1e293b;
-  --color-signal: #4f6df5;
-  --color-signal-2: #c084fc;
-  --color-grid: rgba(79, 109, 245, 0.08);
-  --color-muted: #64748b;
-  --color-glow: rgba(79, 109, 245, 0.15);
-  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-ink: #020204;
+  --color-ink-2: #05060b;
+  --color-paper: #f8f9fa;
+  --color-surface: rgba(10, 15, 30, 0.45);
+  --color-surface-raised: rgba(18, 25, 45, 0.7);
+  --color-signal: #d4af37;
+  --color-signal-2: #14b8a6;
+  --color-grid: rgba(212, 175, 55, 0.05);
+  --color-muted: #8e9aa8;
+  --color-glow: rgba(212, 175, 55, 0.15);
+  --color-border-subtle: rgba(212, 175, 55, 0.12);
 
   --font-display: var(--font-space-grotesk), "Space Grotesk", sans-serif;
   --font-body: var(--font-inter), "Inter", system-ui, sans-serif;
@@ -44,7 +44,7 @@ html {
 
 body {
   margin: 0;
-  background: radial-gradient(circle at 50% -20%, #0d1527 0%, var(--color-ink) 55%), var(--color-ink);
+  background: radial-gradient(circle at 50% -20%, #1a150e 0%, var(--color-ink) 65%), var(--color-ink);
   background-attachment: fixed;
   color: var(--color-paper);
   font-family: var(--font-body);
@@ -341,14 +341,14 @@ body::after {
 .ambient-glow-section::before {
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(79, 109, 245, 0.04) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-signal) 4%, transparent) 0%, transparent 70%);
   top: 10%;
   left: -200px;
 }
 .ambient-glow-section::after {
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, rgba(192, 132, 252, 0.03) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-signal-2) 3%, transparent) 0%, transparent 70%);
   bottom: 10%;
   right: -150px;
 }

@@ -30,151 +30,321 @@ export default function GridBg({ className = "" }: { className?: string }) {
     
     window.addEventListener("resize", handleResize);
 
-    const COLS = 26;
-    const ROWS = 20;
-    const MIN_Z = 180;
-    const MAX_Z = 900;
-    const DEPTH = MAX_Z - MIN_Z;
-    const WIDTH_FACTOR = 750;
-    const FOCAL_LENGTH = 350;
+    const N = 1500;
+    const shapeGalaxy: { x: number; y: number; z: number }[] = [];
+    const shapeCluster: { x: number; y: number; z: number }[] = [];
+    const shapeGlobe: { x: number; y: number; z: number }[] = [];
+    const shapeGrid: { x: number; y: number; z: number }[] = [];
+    const shapeNebula: { x: number; y: number; z: number }[] = [];
 
-    const mouse = { x: 0, y: 0, targetX: 0, targetY: 0, active: false };
+    // 1. Pre-calculate Spiral Galaxy (Double Arm with dense core)
+    for (let i = 0; i < N; i++) {
+      if (i < 200) {
+        // Core sphere
+        const r = Math.pow(Math.random(), 1.5) * 40;
+        const lat = Math.random() * Math.PI;
+        const lon = Math.random() * Math.PI * 2;
+        shapeGalaxy.push({
+          x: r * Math.sin(lat) * Math.cos(lon),
+          y: r * Math.sin(lat) * Math.sin(lon),
+          z: r * Math.cos(lat),
+        });
+      } else {
+        const arm = i % 2;
+        const theta = (i / N) * Math.PI * 8;
+        const r = Math.pow(Math.random(), 1.5) * 260 + 5;
+        shapeGalaxy.push({
+          x: Math.cos(theta + arm * Math.PI) * r + (Math.random() - 0.5) * 15,
+          y: (Math.random() - 0.5) * (180 / (r + 10)) * 10,
+          z: Math.sin(theta + arm * Math.PI) * r + (Math.random() - 0.5) * 15,
+        });
+      }
+    }
+
+    // 2. Pre-calculate Star Cluster (Constellation clump)
+    for (let i = 0; i < N; i++) {
+      const rClust = Math.pow(Math.random(), 0.75) * 210;
+      const lat = Math.random() * Math.PI;
+      const lon = Math.random() * Math.PI * 2;
+      shapeCluster.push({
+        x: rClust * Math.sin(lat) * Math.cos(lon),
+        y: rClust * Math.sin(lat) * Math.sin(lon),
+        z: rClust * Math.cos(lat),
+      });
+    }
+
+    // 3. Pre-calculate Globe (Longitude/Latitude lattice sphere)
+    const lonCount = 50;
+    const latCount = 30;
+    for (let i = 0; i < N; i++) {
+      const rGlobe = 175;
+      const latIdx = Math.floor(i / lonCount) % latCount;
+      const lonIdx = i % lonCount;
+      const phiGlobe = (latIdx / latCount) * Math.PI;
+      const thetaGlobe = (lonIdx / lonCount) * Math.PI * 2;
+      shapeGlobe.push({
+        x: rGlobe * Math.sin(phiGlobe) * Math.cos(thetaGlobe),
+        y: rGlobe * Math.sin(phiGlobe) * Math.sin(thetaGlobe),
+        z: rGlobe * Math.cos(phiGlobe),
+      });
+    }
+
+    // 4. Pre-calculate Curved Horizon Mesh
+    const cols = 50;
+    for (let i = 0; i < N; i++) {
+      const colIdx = i % cols;
+      const rowIdx = Math.floor(i / cols);
+      const gridX = ((colIdx / cols) - 0.5) * 720;
+      const gridZ = (rowIdx / 30) * 500 - 250;
+      shapeGrid.push({
+        x: gridX,
+        y: Math.sin(gridX * 0.008) * 35 + Math.cos(gridZ * 0.008) * 40 - 70,
+        z: gridZ,
+      });
+    }
+
+    // 5. Pre-calculate Nebula Drift Field
+    for (let i = 0; i < N; i++) {
+      shapeNebula.push({
+        x: (Math.random() - 0.5) * 850,
+        y: (Math.random() - 0.5) * 650,
+        z: (Math.random() - 0.5) * 850,
+      });
+    }
+
+    // Connect random stars for constellation lines
+    const constellationLines: [number, number][] = [];
+    for (let i = 0; i < 400; i++) {
+      const p1 = Math.floor(Math.random() * N);
+      const p2 = Math.floor(Math.random() * N);
+      const dist = Math.hypot(
+        shapeCluster[p1].x - shapeCluster[p2].x,
+        shapeCluster[p1].y - shapeCluster[p2].y
+      );
+      if (dist < 75) {
+        constellationLines.push([p1, p2]);
+      }
+    }
+
+    const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
 
     const handleMouseMove = (e: MouseEvent) => {
       mouse.targetX = (e.clientX / window.innerWidth) - 0.5;
       mouse.targetY = (e.clientY / window.innerHeight) - 0.5;
-      mouse.active = true;
     };
 
     const handleMouseLeave = () => {
       mouse.targetX = 0;
       mouse.targetY = 0;
-      mouse.active = false;
     };
 
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
     document.addEventListener("mouseleave", handleMouseLeave);
 
-    let camYaw = 0;
-    let camPitch = 0.15;
-    let camHeight = 150;
-    
-    let time = 0;
+    let targetScrollProgress = 0;
+    let currentScrollProgress = 0;
+
+    const handleScroll = () => {
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (docHeight > 0) {
+        targetScrollProgress = window.scrollY / docHeight;
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    // Run once initially to capture initial position
+    handleScroll();
+
     let rafId = 0;
+    const FOCAL_LENGTH = 360;
 
     const render = (timestamp: number) => {
       if (!ctx || !canvas) return;
-      time = timestamp * 0.001;
 
       ctx.clearRect(0, 0, width, height);
 
+      // Liquid damping for scroll and camera inertia
+      currentScrollProgress += (targetScrollProgress - currentScrollProgress) * 0.08;
       mouse.x += (mouse.targetX - mouse.x) * 0.05;
       mouse.y += (mouse.targetY - mouse.y) * 0.05;
 
-      const currentYaw = camYaw + mouse.x * 0.25;
-      const currentPitch = camPitch + mouse.y * 0.15;
-      const currentHeight = camHeight + Math.sin(time * 0.4) * 10;
-      
-      const cosYaw = Math.cos(currentYaw);
-      const sinYaw = Math.sin(currentYaw);
-      const cosPitch = Math.cos(currentPitch);
-      const sinPitch = Math.sin(currentPitch);
+      const time = timestamp * 0.0004;
+      const yaw = time * 0.2 + mouse.x * 0.35;
+      const pitch = 0.25 + mouse.y * 0.2;
+
+      const cosY = Math.cos(yaw);
+      const sinY = Math.sin(yaw);
+      const cosP = Math.cos(pitch);
+      const sinP = Math.sin(pitch);
 
       const centerX = width / 2;
-      const centerY = height * 0.55;
+      const centerY = height * 0.48;
 
-      const screenPoints: { x: number; y: number; z: number }[][] = [];
+      const projected: { x: number; y: number; visible: boolean; opacity: number }[] = [];
+      const progress = currentScrollProgress;
 
-      const influenceZ = MIN_Z + (mouse.y + 0.5) * DEPTH;
-      const influenceX = mouse.x * WIDTH_FACTOR * (influenceZ / FOCAL_LENGTH);
-      const maxInfluenceDist = 200;
+      let shape1, shape2, localP;
+      if (progress < 0.25) {
+        shape1 = shapeGalaxy;
+        shape2 = shapeCluster;
+        localP = progress / 0.25;
+      } else if (progress < 0.5) {
+        shape1 = shapeCluster;
+        shape2 = shapeGlobe;
+        localP = (progress - 0.25) / 0.25;
+      } else if (progress < 0.75) {
+        shape1 = shapeGlobe;
+        shape2 = shapeGrid;
+        localP = (progress - 0.5) / 0.25;
+      } else {
+        shape1 = shapeGrid;
+        shape2 = shapeNebula;
+        localP = Math.min(1.0, (progress - 0.75) / 0.25);
+      }
 
-      for (let r = 0; r <= ROWS; r++) {
-        screenPoints[r] = [];
-        const z3d = MIN_Z + (r / ROWS) * DEPTH;
+      const smoothP = localP * localP * (3 - 2 * localP);
 
-        for (let c = 0; c <= COLS; c++) {
-          const x3d = ((c / COLS) - 0.5) * WIDTH_FACTOR;
-          let y3d = 0;
+      for (let i = 0; i < N; i++) {
+        const p1 = shape1[i];
+        const p2 = shape2[i];
+        const x3d = p1.x * (1 - smoothP) + p2.x * smoothP;
+        const y3d = p1.y * (1 - smoothP) + p2.y * smoothP;
+        const z3d = p1.z * (1 - smoothP) + p2.z * smoothP;
 
-          if (motionEnabled) {
-            const distFromCenter = Math.hypot(x3d, z3d - (MIN_Z + DEPTH/2));
-            y3d = Math.sin(distFromCenter * 0.006 - time * 1.5) * 15;
-            y3d += Math.cos(x3d * 0.01 + time * 1.0) * 8;
+        const rx = x3d * cosY - z3d * sinY;
+        const rz1 = x3d * sinY + z3d * cosY;
 
-            if (mouse.active) {
-              const dx = x3d - influenceX;
-              const dz = z3d - influenceZ;
-              const dist3d = Math.hypot(dx, dz);
-              if (dist3d < maxInfluenceDist) {
-                const strength = (1 - dist3d / maxInfluenceDist);
-                y3d -= strength * strength * 45;
-              }
-            }
+        const ry = y3d * cosP - rz1 * sinP;
+        const rz2 = y3d * sinP + rz1 * cosP;
+
+        const finalZ = rz2 + 450;
+
+        if (finalZ > 10) {
+          const scale = FOCAL_LENGTH / finalZ;
+          const sx = centerX + rx * scale;
+          const sy = centerY - ry * scale;
+          const opacity = Math.min(1.0, Math.max(0.0, 1.0 - finalZ / 800)) * 0.5;
+
+          projected.push({
+            x: sx,
+            y: sy,
+            visible: sx >= -50 && sx <= width + 50 && sy >= -50 && sy <= height + 50,
+            opacity,
+          });
+        } else {
+          projected.push({ x: -9999, y: -9999, visible: false, opacity: 0 });
+        }
+      }
+
+      ctx.lineWidth = 0.5;
+
+      // Draw Globe Connections
+      if (progress >= 0.22 && progress < 0.78) {
+        let globeWeight = 0;
+        if (progress >= 0.22 && progress < 0.5) {
+          globeWeight = smoothP;
+        } else {
+          globeWeight = 1.0 - smoothP;
+        }
+
+        ctx.strokeStyle = `rgba(212, 175, 55, ${globeWeight * 0.16})`;
+
+        for (let i = 0; i < N; i++) {
+          const p1 = projected[i];
+          if (!p1 || !p1.visible) continue;
+
+          const nextLon = (i % lonCount === lonCount - 1) ? i - lonCount + 1 : i + 1;
+          const p2 = projected[nextLon];
+          if (p2 && p2.visible) {
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
           }
 
-          const dx = x3d;
-          const dy = y3d - currentHeight;
-          const dz = z3d;
-
-          const rx1 = dx * cosYaw - dz * sinYaw;
-          const rz1 = dx * sinYaw + dz * cosYaw;
-
-          const ry2 = dy * cosPitch - rz1 * sinPitch;
-          const rz2 = dy * sinPitch + rz1 * cosPitch;
-
-          if (rz2 > 10) {
-            const scale = FOCAL_LENGTH / rz2;
-            const sx = centerX + rx1 * scale;
-            const sy = centerY - ry2 * scale;
-            screenPoints[r][c] = { x: sx, y: sy, z: rz2 };
-          } else {
-            screenPoints[r][c] = { x: -9999, y: -9999, z: rz2 };
+          const nextLat = i + lonCount;
+          if (nextLat < N) {
+            const p3 = projected[nextLat];
+            if (p3 && p3.visible) {
+              ctx.beginPath();
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p3.x, p3.y);
+              ctx.stroke();
+            }
           }
         }
       }
 
-      ctx.lineWidth = 0.75;
+      // Draw Constellation Connections
+      if (progress < 0.48) {
+        let clusterWeight = 0;
+        if (progress < 0.25) {
+          clusterWeight = smoothP;
+        } else {
+          clusterWeight = 1.0 - smoothP;
+        }
 
-      for (let r = 0; r <= ROWS; r++) {
-        for (let c = 0; c <= COLS; c++) {
-          const p1 = screenPoints[r][c];
-          if (p1.x < -1000 || p1.x > width + 1000) continue;
-
-          const zPercent = (p1.z - MIN_Z) / DEPTH;
-          const opacity = Math.max(0, 1 - zPercent) * 0.28;
-
-          let rVal = 79, gVal = 109, bVal = 245; 
-
-          if (c < COLS) {
-            const p2 = screenPoints[r][c + 1];
-            if (p2 && p2.x !== -9999) {
-              ctx.beginPath();
-              ctx.moveTo(p1.x, p1.y);
-              ctx.lineTo(p2.x, p2.y);
-              ctx.strokeStyle = `rgba(${rVal}, ${gVal}, ${bVal}, ${opacity})`;
-              ctx.stroke();
-            }
-          }
-
-          if (r < ROWS) {
-            const p2 = screenPoints[r + 1][c];
-            if (p2 && p2.x !== -9999) {
-              ctx.beginPath();
-              ctx.moveTo(p1.x, p1.y);
-              ctx.lineTo(p2.x, p2.y);
-              ctx.strokeStyle = `rgba(${rVal}, ${gVal}, ${bVal}, ${opacity})`;
-              ctx.stroke();
-            }
-          }
-
-          if (r % 2 === 0 && c % 2 === 0 && opacity > 0.08) {
+        ctx.strokeStyle = `rgba(212, 175, 55, ${clusterWeight * 0.14})`;
+        for (let i = 0; i < constellationLines.length; i++) {
+          const [idx1, idx2] = constellationLines[i];
+          const p1 = projected[idx1];
+          const p2 = projected[idx2];
+          if (p1 && p1.visible && p2 && p2.visible) {
             ctx.beginPath();
-            ctx.arc(p1.x, p1.y, 1.2, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(${rVal}, ${gVal}, ${bVal}, ${opacity * 1.8})`;
-            ctx.fill();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
           }
         }
+      }
+
+      // Draw Horizon Grid Connections
+      if (progress >= 0.48) {
+        let gridWeight = 0;
+        if (progress >= 0.48 && progress < 0.75) {
+          gridWeight = smoothP;
+        } else {
+          gridWeight = 1.0 - smoothP;
+        }
+
+        ctx.strokeStyle = `rgba(20, 184, 166, ${gridWeight * 0.16})`;
+        for (let i = 0; i < N; i++) {
+          const col = i % cols;
+          const p1 = projected[i];
+          if (!p1 || !p1.visible) continue;
+
+          if (col < cols - 1) {
+            const p2 = projected[i + 1];
+            if (p2 && p2.visible) {
+              ctx.beginPath();
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.stroke();
+            }
+          }
+
+          const p3 = projected[i + cols];
+          if (p3 && p3.visible && i + cols < N) {
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p3.x, p3.y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Draw Stars (Particles)
+      for (let i = 0; i < N; i++) {
+        const p = projected[i];
+        if (!p || !p.visible) continue;
+
+        const isTeal = i % 3 === 0;
+        const color = isTeal ? "20, 184, 166" : "212, 175, 55";
+        
+        ctx.beginPath();
+        const size = (i < 200 && progress < 0.25) ? 1.8 : 0.95;
+        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${color}, ${p.opacity})`;
+        ctx.fill();
       }
 
       if (motionEnabled) {
@@ -193,6 +363,7 @@ export default function GridBg({ className = "" }: { className?: string }) {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseleave", handleMouseLeave);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, [motionEnabled]);
 
@@ -202,10 +373,7 @@ export default function GridBg({ className = "" }: { className?: string }) {
       aria-hidden="true"
       className={`pointer-events-none absolute inset-0 -z-10 h-full w-full overflow-hidden ${className}`}
     >
-      <canvas
-        ref={canvasRef}
-        className="block h-full w-full opacity-60"
-      />
+      <canvas ref={canvasRef} className="block h-full w-full opacity-70" />
     </div>
   );
 }

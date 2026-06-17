@@ -107,7 +107,7 @@ export default function Contact() {
   };
 
   const fieldClass =
-    "w-full rounded-[10px] border bg-surface px-4 py-3 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-signal transition-colors duration-200";
+    "w-full rounded-[10px] border border-[var(--color-border-subtle)] bg-[rgba(0,0,0,0.35)] px-4 py-3 text-sm text-paper outline-none placeholder:text-muted/40 focus:border-signal focus:shadow-[0_0_12px_rgba(212,175,55,0.25)] transition-all duration-200";
 
   const STEPS = [
     { n: "01", t: "you send the brief" },
@@ -119,7 +119,7 @@ export default function Contact() {
     <section
       ref={rootRef}
       id="contact"
-      className="dark-section bg-ink py-24 text-paper sm:py-32"
+      className="dark-section bg-ink py-24 text-paper sm:py-32 ambient-glow-section"
     >
       <div className="container">
         <h2
@@ -188,11 +188,11 @@ export default function Contact() {
             </ul>
           </div>
 
-          {/* Form card: White surface for readability */}
+          {/* Form card: Frosted space glass for cosmic styling */}
           <form
             noValidate
             onSubmit={onSubmit}
-            className="order-1 rounded-[14px] border border-grid bg-surface p-6 text-ink sm:p-8 md:order-2"
+            className="order-1 rounded-[14px] border border-grid bg-surface/80 backdrop-blur-md p-6 text-paper sm:p-8 md:order-2 card-sheen luminous-border"
           >
             <div className="flex flex-col gap-5">
               <div data-reveal>

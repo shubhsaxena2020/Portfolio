@@ -86,11 +86,11 @@ export default function About() {
   }, []);
 
   return (
-    <section ref={rootRef} id="about" className="py-24 sm:py-32">
+    <section ref={rootRef} id="about" className="py-24 sm:py-32 ambient-glow-section">
       <div className="container grid items-start gap-12 md:grid-cols-[minmax(0,360px)_1fr] md:gap-16">
         {/* Profile panel */}
         <div data-reveal>
-          <div className="glass-panel luminous-border overflow-hidden rounded-[14px]">
+          <div className="glass-panel luminous-border overflow-hidden rounded-[14px] card-sheen cursor-pointer">
             <div className="relative aspect-[4/5] bg-[color-mix(in_srgb,var(--color-signal)_4%,var(--color-surface))]">
               {!imageError ? (
                 <Image
