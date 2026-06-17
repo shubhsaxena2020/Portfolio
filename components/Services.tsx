@@ -74,8 +74,8 @@ const TIERS: Tier[] = [
   },
 ];
 
-function scrollToContact() {
-  document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
+function openInstagramDM() {
+  window.open("https://ig.me/m/shubh_builds_", "_blank", "noopener,noreferrer");
 }
 
 function TierCard({ tier, tiltEnabled }: { tier: Tier; tiltEnabled: boolean }) {
@@ -182,7 +182,7 @@ function TierCard({ tier, tiltEnabled }: { tier: Tier; tiltEnabled: boolean }) {
           <span className="font-display text-lg font-bold gradient-text">{tier.price}</span>
           <Magnetic>
             <button
-              onClick={scrollToContact}
+              onClick={openInstagramDM}
               className={`rounded-[10px] px-4 py-2 font-mono text-xs font-medium transition-transform duration-200 hover:scale-[1.03] ${
                 tier.featured
                   ? "bg-signal text-white"
