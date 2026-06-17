@@ -235,7 +235,7 @@ export default function GridBg({ className = "" }: { className?: string }) {
         }
       }
 
-      ctx.lineWidth = 0.5;
+      ctx.lineWidth = 0.55;
 
       // Draw Globe Connections
       if (progress >= 0.22 && progress < 0.78) {
@@ -246,7 +246,7 @@ export default function GridBg({ className = "" }: { className?: string }) {
           globeWeight = 1.0 - smoothP;
         }
 
-        ctx.strokeStyle = `rgba(212, 175, 55, ${globeWeight * 0.16})`;
+        ctx.strokeStyle = `rgba(197, 168, 92, ${globeWeight * 0.15})`; // Gold
 
         for (let i = 0; i < N; i++) {
           const p1 = projected[i];
@@ -283,7 +283,7 @@ export default function GridBg({ className = "" }: { className?: string }) {
           clusterWeight = 1.0 - smoothP;
         }
 
-        ctx.strokeStyle = `rgba(212, 175, 55, ${clusterWeight * 0.14})`;
+        ctx.strokeStyle = `rgba(197, 168, 92, ${clusterWeight * 0.12})`; // Gold
         for (let i = 0; i < constellationLines.length; i++) {
           const [idx1, idx2] = constellationLines[i];
           const p1 = projected[idx1];
@@ -306,7 +306,7 @@ export default function GridBg({ className = "" }: { className?: string }) {
           gridWeight = 1.0 - smoothP;
         }
 
-        ctx.strokeStyle = `rgba(20, 184, 166, ${gridWeight * 0.16})`;
+        ctx.strokeStyle = `rgba(107, 131, 149, ${gridWeight * 0.15})`; // Slate-blue
         for (let i = 0; i < N; i++) {
           const col = i % cols;
           const p1 = projected[i];
@@ -337,13 +337,16 @@ export default function GridBg({ className = "" }: { className?: string }) {
         const p = projected[i];
         if (!p || !p.visible) continue;
 
-        const isTeal = i % 3 === 0;
-        const color = isTeal ? "20, 184, 166" : "212, 175, 55";
+        const isSlate = i % 3 === 0;
+        const color = isSlate ? "107, 131, 149" : "197, 168, 92"; // Slate-blue and Gold
         
+        // Twinkling effect based on index
+        const twinkle = 0.6 + 0.4 * Math.sin(time * 3 + i * 0.05);
+
         ctx.beginPath();
-        const size = (i < 200 && progress < 0.25) ? 1.8 : 0.95;
-        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${color}, ${p.opacity})`;
+        const size = (i < 200 && progress < 0.25) ? 1.6 : 0.85;
+        ctx.arc(p.x, p.y, size * (isSlate ? 0.9 : 1.1), 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${color}, ${p.opacity * twinkle})`;
         ctx.fill();
       }
 

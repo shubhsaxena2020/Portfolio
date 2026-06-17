@@ -43,7 +43,7 @@ const TIERS: Tier[] = [
       "Basic SEO",
       "7-day delivery",
     ],
-    price: "From $200",
+    price: "From $100",
   },
   {
     label: "PRO",
@@ -56,7 +56,7 @@ const TIERS: Tier[] = [
       "Performance-tuned",
       "14-day delivery",
     ],
-    price: "From $500",
+    price: "From $300",
     featured: true,
   },
   {
@@ -70,7 +70,7 @@ const TIERS: Tier[] = [
       "Cinematic scroll",
       "21-day delivery",
     ],
-    price: "From $1,000",
+    price: "From $700",
   },
 ];
 
@@ -121,8 +121,13 @@ function TierCard({ tier, tiltEnabled }: { tier: Tier; tiltEnabled: boolean }) {
     <div
       data-card
       data-featured={tier.featured ? "1" : undefined}
-      className={tier.featured ? "animated-border-wrap" : ""}
+      className={tier.featured ? "animated-border-wrap relative" : "relative"}
     >
+      {tier.featured && (
+        <span className="absolute -top-3.5 left-7 rounded-full bg-signal px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-ink z-20 shadow-lg shadow-signal/20">
+          Most picked
+        </span>
+      )}
       <motion.div
         ref={ref}
         onMouseMove={onMove}
@@ -151,12 +156,6 @@ function TierCard({ tier, tiltEnabled }: { tier: Tier; tiltEnabled: boolean }) {
               }}
             />
           </div>
-        )}
-
-        {tier.featured && (
-          <span className="absolute -top-3 left-7 rounded-full bg-signal px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-ink z-10 shadow-lg shadow-signal/20">
-            Most picked
-          </span>
         )}
 
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted">

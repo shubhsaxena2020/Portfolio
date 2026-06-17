@@ -15,7 +15,6 @@
  * with no timeline. GSAP is dynamically imported so it stays out of SSR.
  */
 import { useEffect, useLayoutEffect, useRef } from "react";
-import GridBg from "@/components/GridBg";
 import Magnetic from "@/components/Magnetic";
 
 const useIsoLayoutEffect =
@@ -269,7 +268,7 @@ export default function Hero() {
     >
       {/* Animated gradient orbs — ambient light on dark surface */}
       <div className="hero-orbs" aria-hidden="true" />
-      <GridBg className="hero-grid-mask" />
+
 
       <div className="container relative">
         {/* Eyebrow */}
