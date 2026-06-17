@@ -17,6 +17,8 @@
 import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { projects, type Project } from "@/lib/projects";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { usePrefersReducedMotion } from "@/lib/reduced-motion";
 
 function BrandTile({ project }: { project: Project }) {
   return (
@@ -41,8 +43,102 @@ function BrandTile({ project }: { project: Project }) {
   );
 }
 
+function ProjectCard({ project, tiltEnabled }: { project: Project; tiltEnabled: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const rx = useMotionValue(0);
+  const ry = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const springRX = useSpring(rx, { stiffness: 220, damping: 18 });
+  const springRY = useSpring(ry, { stiffness: 220, damping: 18 });
+  const springY = useSpring(y, { stiffness: 220, damping: 18 });
+
+  const rotateX = useTransform(springRX, (v) => `${v}deg`);
+  const rotateY = useTransform(springRY, (v) => `${v}deg`);
+
+  const onMove = (e: React.MouseEvent) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5;
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+
+    if (tiltEnabled) {
+      ry.set(px * 10);
+      rx.set(-py * 10);
+    }
+    y.set(-4);
+
+    ref.current.style.setProperty("--mx", `${(px + 0.5) * 100}%`);
+    ref.current.style.setProperty("--my", `${(py + 0.5) * 100}%`);
+  };
+
+  const reset = () => {
+    rx.set(0);
+    ry.set(0);
+    y.set(0);
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={onMove}
+      onMouseLeave={reset}
+      style={{
+        rotateX: tiltEnabled ? rotateX : 0,
+        rotateY: tiltEnabled ? rotateY : 0,
+        y: springY,
+        transformPerspective: 1000,
+      }}
+      className="group relative aspect-[16/10] overflow-hidden rounded-[14px] border border-[var(--color-border-subtle)] bg-surface card-sheen cursor-pointer"
+    >
+      {tiltEnabled && (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[14px]">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+            style={{
+              background:
+                "radial-gradient(240px circle at var(--mx,50%) var(--my,50%), color-mix(in srgb, var(--color-signal) 12%, transparent), transparent 60%)",
+            }}
+          />
+        </div>
+      )}
+
+      <div data-parallax className="absolute inset-0 will-change-transform">
+        <div className="h-full w-full transition-transform duration-500 ease-out group-hover:scale-[1.03]">
+          {project.hasImage ? (
+            <Image
+              src={project.image}
+              alt={`${project.title} — ${project.category}`}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover"
+            />
+          ) : (
+            <BrandTile project={project} />
+          )}
+        </div>
+      </div>
+
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute left-5 top-5 h-5 w-5 border-l-2 border-t-2 border-signal opacity-0 transition-all duration-300 ease-out group-hover:left-3 group-hover:top-3 group-hover:opacity-100"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-5 right-5 h-5 w-5 border-b-2 border-r-2 border-signal opacity-0 transition-all duration-300 ease-out group-hover:bottom-3 group-hover:right-3 group-hover:opacity-100"
+      />
+    </motion.div>
+  );
+}
+
 export default function Work() {
   const rootRef = useRef<HTMLElement>(null);
+  const reduced = usePrefersReducedMotion();
+  const coarse =
+    typeof window !== "undefined" &&
+    window.matchMedia("(pointer: coarse)").matches;
+  const tiltEnabled = !reduced && !coarse;
 
   useEffect(() => {
     const root = rootRef.current;
@@ -66,7 +162,6 @@ export default function Work() {
           root.querySelectorAll<HTMLElement>("[data-row]")
         );
 
-        // Section title reveals
         if (reveals.length > 0) {
           gsap.set(reveals, { opacity: 0, y: 28 });
           gsap.to(reveals, {
@@ -83,20 +178,32 @@ export default function Work() {
           });
         }
 
-        // Project rows reveals
         rows.forEach((row, i) => {
           const chips = row.querySelectorAll<HTMLElement>("[data-chip]");
           const parallax = row.querySelector<HTMLElement>("[data-parallax]");
 
-          // Alternating slide-in + chip stagger after the card lands.
           gsap.set(chips, { opacity: 0, y: 8 });
           const tl = gsap.timeline({
             scrollTrigger: { trigger: row, start: "top 80%", once: true },
           });
           tl.fromTo(
             row,
-            { opacity: 0, x: i % 2 === 0 ? -40 : 40 },
-            { opacity: 1, x: 0, duration: 0.6, ease: "power4.out" }
+            {
+              opacity: 0,
+              x: i % 2 === 0 ? -60 : 60,
+              rotationX: 18,
+              rotationY: i % 2 === 0 ? -12 : 12,
+              transformPerspective: 1000,
+              transformOrigin: i % 2 === 0 ? "left center" : "right center",
+            },
+            {
+              opacity: 1,
+              x: 0,
+              rotationX: 0,
+              rotationY: 0,
+              duration: 0.8,
+              ease: "power4.out",
+            }
           );
           tl.to(
             chips,
@@ -104,7 +211,6 @@ export default function Work() {
             "-=0.2"
           );
 
-          // Subtle parallax: image layer drifts opposite scroll within frame.
           if (parallax) {
             gsap.set(parallax, { scale: 1.1 });
             gsap.fromTo(
@@ -140,7 +246,7 @@ export default function Work() {
         </p>
         <h2
           data-reveal
-          className="font-display mt-4 font-bold leading-[1.1] tracking-tight text-ink"
+          className="font-display mt-4 font-bold leading-[1.1] tracking-tight gradient-text"
           style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)" }}
         >
           Real products. Shipped.
@@ -151,38 +257,11 @@ export default function Work() {
             <article
               key={p.id}
               data-row
-              className={`grid items-center gap-8 md:grid-cols-2 md:gap-12 text-ink ${
+              className={`grid items-center gap-8 md:grid-cols-2 md:gap-12 text-paper ${
                 i % 2 === 1 ? "md:[&>*:first-child]:order-2" : ""
               }`}
             >
-              {/* Visual frame: brand tile (or real image) + hover zoom + brackets */}
-              <div className="group relative aspect-[16/10] overflow-hidden rounded-[14px] border border-grid bg-surface">
-                <div data-parallax className="absolute inset-0 will-change-transform">
-                  <div className="h-full w-full transition-transform duration-500 ease-out group-hover:scale-[1.03]">
-                    {p.hasImage ? (
-                      <Image
-                        src={p.image}
-                        alt={`${p.title} — ${p.category}`}
-                        fill
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <BrandTile project={p} />
-                    )}
-                  </div>
-                </div>
-
-                {/* Signal corner brackets draw in on hover (BUG/M5 improvement) */}
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute left-5 top-5 h-5 w-5 border-l-2 border-t-2 border-signal opacity-0 transition-all duration-300 ease-out group-hover:left-3 group-hover:top-3 group-hover:opacity-100"
-                />
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute bottom-5 right-5 h-5 w-5 border-b-2 border-r-2 border-signal opacity-0 transition-all duration-300 ease-out group-hover:bottom-3 group-hover:right-3 group-hover:opacity-100"
-                />
-              </div>
+              <ProjectCard project={p} tiltEnabled={tiltEnabled} />
 
               {/* Record details */}
               <div>
@@ -190,11 +269,11 @@ export default function Work() {
                   {p.id} · {p.year}
                 </p>
                 <div className="mt-3 flex items-center gap-3">
-                  <span className="rounded-full border border-grid px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-muted">
+                  <span className="rounded-full border border-[var(--color-border-subtle)] px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-muted">
                     {p.category}
                   </span>
                 </div>
-                <h3 className="font-display mt-4 text-3xl font-bold">
+                <h3 className="font-display mt-4 text-3xl font-bold text-paper">
                   {p.title}
                 </h3>
                 <p className="mt-3 max-w-md text-muted">{p.result}</p>
@@ -204,7 +283,7 @@ export default function Work() {
                     <li
                       key={t}
                       data-chip
-                      className="rounded-md bg-[color-mix(in_srgb,var(--color-ink)_5%,transparent)] px-2.5 py-1 font-mono text-[11px]"
+                      className="rounded-md bg-[color-mix(in_srgb,var(--color-signal)_8%,var(--color-surface))] border border-[var(--color-border-subtle)] px-2.5 py-1 font-mono text-[11px]"
                     >
                       {t}
                     </li>
@@ -215,7 +294,7 @@ export default function Work() {
                   href={p.link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-7 inline-block font-mono text-sm text-signal transition-opacity hover:opacity-70"
+                  className="animated-underline mt-7 inline-block font-mono text-sm text-signal transition-opacity hover:opacity-70"
                 >
                   {p.link.label}
                 </a>

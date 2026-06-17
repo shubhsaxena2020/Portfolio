@@ -77,15 +77,22 @@ export default function Loader() {
       aria-hidden="true"
       className="fixed inset-0 z-[9998] flex flex-col items-center justify-center bg-ink text-paper"
       style={{
-        transform: slideUp ? "translateY(-100%)" : "translateY(0)",
-        transition: "transform 0.7s var(--ease)",
+        transform: slideUp
+          ? "translateY(-100%) scale(0.9) rotateX(-10deg)"
+          : "translateY(0) scale(1) rotateX(0deg)",
+        opacity: slideUp ? 0 : 1,
+        transition: "transform 0.8s var(--ease), opacity 0.8s var(--ease)",
+        transformOrigin: "center top",
+        perspective: "1000px",
+        backgroundImage:
+          "radial-gradient(circle at 50% 50%, rgba(79,109,245,0.08) 0%, transparent 60%)",
       }}
     >
       <p className="font-mono text-xs tracking-widest text-muted">
         building shubh.build
       </p>
       <p
-        className="font-display mt-4 tabular-nums"
+        className="font-display mt-4 tabular-nums gradient-text"
         style={{ fontSize: "clamp(3rem, 14vw, 6rem)", fontWeight: 700 }}
       >
         {count}

@@ -5,7 +5,7 @@
  *
  * On load (after the Loader), a GSAP timeline:
  *   1. types `> initializing shubh.build …` → `> ready` (ready turns --signal)
- *   2. headline lines snap in (blur→sharp, muted→ink), stagger 0.12s
+ *   2. headline lines snap in (blur→sharp, muted→paper), stagger 0.12s
  *   3. a 1px --signal rule sweeps left→right (scaleX 0→1) = "done"
  *   4. subline + buttons fade up
  *
@@ -51,6 +51,13 @@ export default function Hero() {
     const INIT = "> initializing shubh.build …";
 
     // Pre-paint: hide everything the timeline will reveal, reset the status.
+    root.style.perspective = "1200px";
+    const heroContent = root.querySelector<HTMLElement>(".container");
+    if (heroContent) {
+      heroContent.style.transformStyle = "preserve-3d";
+      heroContent.style.opacity = "0";
+    }
+
     if (eyebrow) {
       eyebrow.style.opacity = "0";
       eyebrow.style.transform = "translateY(8px)";
@@ -81,9 +88,30 @@ export default function Hero() {
       const proxy = { n: 0 };
       tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
+      // 0. 3D zoom up container
+      if (heroContent) {
+        tl.fromTo(
+          heroContent,
+          {
+            opacity: 0,
+            z: -80,
+            rotationX: 12,
+            y: 20,
+          },
+          {
+            opacity: 1,
+            z: 0,
+            rotationX: 0,
+            y: 0,
+            duration: 0.8,
+            ease: "power3.out",
+          }
+        );
+      }
+
       // 1. eyebrow fades in
       if (eyebrow) {
-        tl.to(eyebrow, { opacity: 1, y: 0, duration: 0.3 });
+        tl.to(eyebrow, { opacity: 1, y: 0, duration: 0.3 }, "-=0.5");
       }
 
       // 2. type the status line, then snap to "> ready"
@@ -107,7 +135,7 @@ export default function Hero() {
           opacity: 1,
           filter: "blur(0px)",
           y: 0,
-          color: "", // back to inherited (ink, or the inline signal spans)
+          color: "", // back to inherited (paper, or the inline signal spans)
           duration: 0.6,
           stagger: 0.12,
         },
@@ -205,6 +233,8 @@ export default function Hero() {
       id="hero"
       className="relative flex min-h-[100svh] items-center overflow-hidden"
     >
+      {/* Animated gradient orbs — ambient light on dark surface */}
+      <div className="hero-orbs" aria-hidden="true" />
       <GridBg className="hero-grid-mask" />
 
       <div className="container relative">
@@ -225,7 +255,7 @@ export default function Hero() {
 
         {/* Headline with spans for word/letter animation */}
         <h1
-          className="font-display mt-5 font-bold leading-[1.04] tracking-tight text-ink"
+          className="font-display mt-5 font-bold leading-[1.04] tracking-tight text-paper"
           style={{ fontSize: "clamp(2.6rem, 6vw, 5.5rem)" }}
         >
           <span data-line className="block">
@@ -252,11 +282,11 @@ export default function Hero() {
           </span>
         </h1>
 
-        {/* Signal rule (the "done" sweep) */}
+        {/* Signal rule (the "done" sweep) — with glow */}
         <span
           data-rule
           aria-hidden="true"
-          className="mt-7 block h-px w-40 origin-left bg-signal sm:w-56"
+          className="mt-7 block h-px w-40 origin-left bg-signal signal-rule-glow sm:w-56"
         />
 
         {/* Subline */}
@@ -280,7 +310,7 @@ export default function Hero() {
           <Magnetic>
             <button
               onClick={() => scrollToId("contact")}
-              className="rounded-[10px] border border-ink px-6 py-3 font-mono text-sm font-medium text-ink transition-colors duration-200 hover:bg-ink hover:text-paper"
+              className="rounded-[10px] border border-paper/20 px-6 py-3 font-mono text-sm font-medium text-paper transition-colors duration-200 hover:bg-paper hover:text-ink"
             >
               Start a build
             </button>

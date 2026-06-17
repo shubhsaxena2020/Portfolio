@@ -2,7 +2,7 @@
 
 /**
  * Three NAMED tiers — never numbered 01/02/03 (doc 00 avoid-list).
- * Pro is visually featured (--signal hairline + glow + `MOST PICKED`).
+ * Pro is visually featured (animated-border-wrap + glow + `MOST PICKED`).
  *
  * Motion (doc 06 D3), split so GSAP and Framer never fight over transform:
  *  - OUTER wrapper: GSAP scroll-in (rise + fade, stagger). Pro arrives last
@@ -43,7 +43,7 @@ const TIERS: Tier[] = [
       "Basic SEO",
       "7-day delivery",
     ],
-    price: "From $200", // Updated to match docs/02_CONTENT.md
+    price: "From $200",
   },
   {
     label: "PRO",
@@ -56,7 +56,7 @@ const TIERS: Tier[] = [
       "Performance-tuned",
       "14-day delivery",
     ],
-    price: "From $500", // Updated to match docs/02_CONTENT.md
+    price: "From $500",
     featured: true,
   },
   {
@@ -70,7 +70,7 @@ const TIERS: Tier[] = [
       "Cinematic scroll",
       "21-day delivery",
     ],
-    price: "From $1,000", // Updated to match docs/02_CONTENT.md
+    price: "From $1,000",
   },
 ];
 
@@ -118,7 +118,11 @@ function TierCard({ tier, tiltEnabled }: { tier: Tier; tiltEnabled: boolean }) {
 
   return (
     // OUTER wrapper — GSAP owns this transform (scroll-in + Pro overshoot).
-    <div data-card data-featured={tier.featured ? "1" : undefined}>
+    <div
+      data-card
+      data-featured={tier.featured ? "1" : undefined}
+      className={tier.featured ? "animated-border-wrap" : ""}
+    >
       <motion.div
         ref={ref}
         onMouseMove={onMove}
@@ -129,10 +133,10 @@ function TierCard({ tier, tiltEnabled }: { tier: Tier; tiltEnabled: boolean }) {
           y: springY,
           transformPerspective: 1000,
         }}
-        className={`group relative flex h-full flex-col rounded-[14px] border bg-surface p-7 text-ink ${
+        className={`group relative flex h-full flex-col rounded-[14px] p-7 text-paper card-sheen cursor-pointer ${
           tier.featured
-            ? "border-signal shadow-[0_0_40px_-12px_var(--color-signal)]"
-            : "border-grid"
+            ? "glass-panel"
+            : "glass-panel"
         }`}
       >
         {/* cursor-tracking glow: isolated overflow container to prevent badge clipping (BUG 4) */}
@@ -158,7 +162,7 @@ function TierCard({ tier, tiltEnabled }: { tier: Tier; tiltEnabled: boolean }) {
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted">
           {tier.label}
         </p>
-        <h3 className="font-display mt-3 text-2xl font-bold">{tier.title}</h3>
+        <h3 className="font-display mt-3 text-2xl font-bold text-paper">{tier.title}</h3>
         <p className="mt-2 text-sm text-muted">{tier.promise}</p>
 
         <ul className="mt-6 flex flex-col gap-2.5">
@@ -167,7 +171,7 @@ function TierCard({ tier, tiltEnabled }: { tier: Tier; tiltEnabled: boolean }) {
               key={f}
               className="flex items-start gap-2 font-mono text-xs"
             >
-              <span className="mt-px text-signal font-bold" aria-hidden="true">
+              <span className="mt-px text-signal font-bold glow-check" aria-hidden="true">
                 ✓
               </span>
               <span>{f}</span>
@@ -175,15 +179,15 @@ function TierCard({ tier, tiltEnabled }: { tier: Tier; tiltEnabled: boolean }) {
           ))}
         </ul>
 
-        <div className="mt-auto flex items-center justify-between border-t border-grid pt-6">
-          <span className="font-display text-lg font-bold">{tier.price}</span>
+        <div className="mt-auto flex items-center justify-between border-t border-[var(--color-border-subtle)] pt-6">
+          <span className="font-display text-lg font-bold gradient-text">{tier.price}</span>
           <Magnetic>
             <button
               onClick={scrollToContact}
               className={`rounded-[10px] px-4 py-2 font-mono text-xs font-medium transition-transform duration-200 hover:scale-[1.03] ${
                 tier.featured
                   ? "bg-signal text-white"
-                  : "border border-ink text-ink"
+                  : "border border-paper/20 text-paper"
               }`}
             >
               Start →
@@ -291,7 +295,7 @@ export default function Services() {
         </p>
         <h2
           data-reveal
-          className="font-display mt-4 font-bold leading-[1.1] tracking-tight text-ink"
+          className="font-display mt-4 font-bold leading-[1.1] tracking-tight gradient-text"
           style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)" }}
         >
           Three ways to ship.

@@ -2,9 +2,9 @@
 
 /**
  * Operator bio + TRUE stats only (doc 01/02).
- * - Left: profile panel (--surface, hairline border) + mono caption strip.
+ * - Left: profile panel (glass-panel, luminous-border) + mono caption strip.
  *   profile.jpeg matches public/profile.jpeg.
- * - Right: eyebrow `WHO`, heading, two paragraphs (exact copy from doc 02).
+ * - Right: eyebrow `WHO`, heading with gradient-text, two paragraphs.
  * - Stat strip: count-up on reveal, ONLY the three real numbers.
  * - GSAP ScrollTrigger reveal; reduced-motion → final state, no timeline.
  */
@@ -90,8 +90,8 @@ export default function About() {
       <div className="container grid items-start gap-12 md:grid-cols-[minmax(0,360px)_1fr] md:gap-16">
         {/* Profile panel */}
         <div data-reveal>
-          <div className="overflow-hidden rounded-[14px] border border-grid bg-surface">
-            <div className="relative aspect-[4/5] bg-[color-mix(in_srgb,var(--color-ink)_4%,var(--color-surface))]">
+          <div className="glass-panel luminous-border overflow-hidden rounded-[14px]">
+            <div className="relative aspect-[4/5] bg-[color-mix(in_srgb,var(--color-signal)_4%,var(--color-surface))]">
               {!imageError ? (
                 <Image
                   src="/profile.jpeg"
@@ -104,13 +104,13 @@ export default function About() {
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
-                  <span className="font-display text-7xl font-bold text-grid">
+                  <span className="font-display text-7xl font-bold text-muted">
                     SB
                   </span>
                 </div>
               )}
             </div>
-            <div className="border-t border-grid px-4 py-3 font-mono text-xs text-muted">
+            <div className="border-t border-[var(--color-border-subtle)] px-4 py-3 font-mono text-xs text-muted">
               profile · operator
             </div>
           </div>
@@ -126,7 +126,7 @@ export default function About() {
           </p>
           <h2
             data-reveal
-            className="font-display mt-4 font-bold leading-[1.1] tracking-tight text-ink"
+            className="font-display mt-4 font-bold leading-[1.1] tracking-tight gradient-text"
             style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)" }}
           >
             Young, but already shipping.
@@ -147,14 +147,14 @@ export default function About() {
           {/* Stat strip */}
           <dl
             data-reveal
-            className="mt-10 grid grid-cols-3 gap-6 border-t border-grid pt-8 text-ink"
+            className="mt-10 grid grid-cols-3 gap-6 border-t border-[var(--color-border-subtle)] pt-8 text-paper"
           >
             {STATS.map((s) => (
               <div key={s.label}>
                 <dd
                   data-count={s.target}
                   data-suffix={s.suffix || ""}
-                  className="font-display text-4xl font-bold tabular-nums sm:text-5xl"
+                  className="font-display text-4xl font-bold tabular-nums gradient-text sm:text-5xl"
                 >
                   {s.target}
                   {s.suffix || ""}

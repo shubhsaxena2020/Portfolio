@@ -2,19 +2,21 @@
 
 /* ─────────────────────────────────────────────────────────────
    Design tokens — single source of truth (doc 01).
-   Every color/type/spacing choice derives from these.
-   next/font injects --font-space-grotesk / --font-inter /
-   --font-jetbrains-mono onto <html>; we map them to roles here.
+   PREMIUM DARK-FIRST PALETTE: Deep midnight blacks with blue
+   undertones, luminous indigo signal, frosted glass surfaces.
    ───────────────────────────────────────────────────────────── */
 @theme {
-  --color-ink: #0a0a0b;
-  --color-ink-2: #14161a;
-  --color-paper: #eceae3;
-  --color-surface: #ffffff;
-  --color-signal: #2b4bff;
-  --color-signal-2: #6c8bff;
-  --color-grid: #d2cfc6;
-  --color-muted: #5e636b;
+  --color-ink: #04060a;
+  --color-ink-2: #090e17;
+  --color-paper: #e8eaed;
+  --color-surface: #0f172a;
+  --color-surface-raised: #1e293b;
+  --color-signal: #4f6df5;
+  --color-signal-2: #c084fc;
+  --color-grid: rgba(79, 109, 245, 0.08);
+  --color-muted: #64748b;
+  --color-glow: rgba(79, 109, 245, 0.15);
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
 
   --font-display: var(--font-space-grotesk), "Space Grotesk", sans-serif;
   --font-body: var(--font-inter), "Inter", system-ui, sans-serif;
@@ -25,8 +27,6 @@
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Expose non-color tokens as plain custom properties too, so they're
-   usable in raw CSS / inline styles, not just Tailwind utilities. */
 :root {
   --radius: 14px;
   --maxw: 1200px;
@@ -44,8 +44,9 @@ html {
 
 body {
   margin: 0;
-  background: var(--color-paper);
-  color: var(--color-ink);
+  background: radial-gradient(circle at 50% -20%, #0d1527 0%, var(--color-ink) 55%), var(--color-ink);
+  background-attachment: fixed;
+  color: var(--color-paper);
   font-family: var(--font-body);
   font-weight: 400;
   line-height: 1.6;
@@ -93,16 +94,67 @@ body {
   padding-inline: clamp(1.25rem, 4vw, 2.5rem);
 }
 
-/* Faint design-tool baseline grid (used behind hero via GridBg). */
-.grid-bg {
-  background-image:
-    linear-gradient(to right, var(--color-grid) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--color-grid) 1px, transparent 1px);
-  background-size: 56px 56px;
-  opacity: 0.35;
+/* ─── Noise texture overlay (subtle depth on dark surfaces) ───── */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
 }
 
-/* Dark sections: a faint 1px top "scanline" sheen for the engineered feel. */
+/* ─── Animated gradient orbs (hero background ambient light) ──── */
+@keyframes orb-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+}
+
+.hero-orbs {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.hero-orbs::before,
+.hero-orbs::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  animation: orb-drift 20s ease-in-out infinite;
+  will-change: transform;
+}
+.hero-orbs::before {
+  width: clamp(300px, 40vw, 600px);
+  height: clamp(300px, 40vw, 600px);
+  background: radial-gradient(circle, var(--color-signal) 0%, transparent 70%);
+  opacity: 0.08;
+  top: 5%;
+  right: 10%;
+}
+.hero-orbs::after {
+  width: clamp(200px, 30vw, 450px);
+  height: clamp(200px, 30vw, 450px);
+  background: radial-gradient(circle, var(--color-signal-2) 0%, transparent 70%);
+  opacity: 0.06;
+  bottom: 15%;
+  left: 5%;
+  animation-delay: -7s;
+}
+
+/* Faint design-tool baseline grid. */
+.grid-bg {
+  background-image:
+    radial-gradient(circle, var(--color-grid) 1px, transparent 1px);
+  background-size: 56px 56px;
+  opacity: 0.4;
+}
+
+/* Dark sections: luminous 1px top sheen. */
 .dark-section {
   position: relative;
 }
@@ -114,17 +166,88 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    color-mix(in srgb, var(--color-signal-2) 60%, transparent),
+    color-mix(in srgb, var(--color-signal-2) 50%, transparent),
     transparent
   );
-  opacity: 0.5;
+  opacity: 0.6;
   pointer-events: none;
 }
 
-/* Hero grid fades out toward the lower-right so it stays a faint backdrop. */
+/* Hero grid fade-out toward lower-right. */
 .hero-grid-mask {
   -webkit-mask-image: radial-gradient(120% 100% at 0% 0%, black 35%, transparent 80%);
   mask-image: radial-gradient(120% 100% at 0% 0%, black 35%, transparent 80%);
+}
+
+/* ─── Glass panel utility (frosted glass cards) ─────────────── */
+.glass-panel {
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--color-border-subtle);
+}
+
+/* ─── Gradient text utility ────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-paper) 30%, var(--color-signal-2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Luminous border (animated subtle glow) ───────────────── */
+@keyframes border-glow-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+.luminous-border {
+  position: relative;
+}
+.luminous-border::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-signal) 30%, transparent),
+    transparent 50%,
+    color-mix(in srgb, var(--color-signal-2) 20%, transparent)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: border-glow-pulse 4s ease-in-out infinite;
+}
+
+/* ─── Animated conic gradient border (featured cards) ────── */
+@keyframes conic-spin {
+  to { --conic-angle: 360deg; }
+}
+@property --conic-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.animated-border-wrap {
+  position: relative;
+  border-radius: var(--radius);
+  padding: 1px;
+  background: conic-gradient(
+    from var(--conic-angle),
+    var(--color-signal),
+    transparent 30%,
+    var(--color-signal-2),
+    transparent 70%,
+    var(--color-signal)
+  );
+  animation: conic-spin 4s linear infinite;
+}
+.animated-border-wrap > * {
+  border-radius: calc(var(--radius) - 1px);
 }
 
 /* Scroll hint — gentle 6px bob (disabled under reduced-motion below). */
@@ -139,6 +262,95 @@ body {
 }
 .hero-scroll-hint {
   animation: hero-bob 1.8s var(--ease) infinite;
+}
+
+/* ─── Glow pulse (for check marks, indicators) ──────────── */
+@keyframes glow-pulse {
+  0%, 100% { text-shadow: 0 0 4px var(--color-signal); }
+  50% { text-shadow: 0 0 12px var(--color-signal), 0 0 24px color-mix(in srgb, var(--color-signal) 40%, transparent); }
+}
+.glow-check {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* ─── Animated underline (link hover effect) ────────────── */
+.animated-underline {
+  position: relative;
+}
+.animated-underline::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--color-signal);
+  transition: width 0.35s var(--ease);
+}
+.animated-underline:hover::after {
+  width: 100%;
+}
+
+/* ─── Signal rule glow ──────────────────────────────────── */
+.signal-rule-glow {
+  box-shadow:
+    0 0 8px color-mix(in srgb, var(--color-signal) 40%, transparent),
+    0 0 24px color-mix(in srgb, var(--color-signal) 20%, transparent);
+}
+
+/* ─── Premium metallic card sheen ──────────────────────── */
+.card-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.card-sheen::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 150%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  transform: skewX(-25deg);
+  transition: left 0.75s var(--ease);
+  pointer-events: none;
+  z-index: 5;
+}
+.card-sheen:hover::before {
+  left: 150%;
+}
+
+/* ─── Ambient glow background section ──────────────────── */
+.ambient-glow-section {
+  position: relative;
+}
+.ambient-glow-section::before,
+.ambient-glow-section::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -5;
+  filter: blur(140px);
+}
+.ambient-glow-section::before {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(79, 109, 245, 0.04) 0%, transparent 70%);
+  top: 10%;
+  left: -200px;
+}
+.ambient-glow-section::after {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(192, 132, 252, 0.03) 0%, transparent 70%);
+  bottom: 10%;
+  right: -150px;
 }
 
 @media (prefers-reduced-motion: reduce) {
