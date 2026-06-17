@@ -1,119 +1,100 @@
 "use client";
 
 /**
- * Signal-dot + velocity trail (doc 00/01).
- *
- * Canvas, fixed, z-9999, pointer-events:none — never intercepts clicks.
- * - Ring buffer of ~22 points; particle radius 2–5px scaled by velocity.
- * - Color mixes --signal → --muted along the tail; opacity 1→0 over ~450ms.
- * - 7px solid --signal lead dot at the live pointer.
- * - Mounts ONLY on (pointer:fine) devices and when motion is allowed.
- * - Reduced-motion or touch: render nothing, restore system cursor.
+ * Smooth two-part cursor (doc 06 B3). Replaces v1's laggy particle dots.
+ * - Lead dot: 6px solid --signal, follows the pointer 1:1.
+ * - Ring: ~26px hollow ring trailing with eased lerp (~0.15/frame); scales up
+ *   slightly with velocity; on hover over interactive elements it scales down
+ *   and fills (magnetic feel).
+ * - requestAnimationFrame; mounts ONLY on (pointer:fine); killed on
+ *   reduced-motion. Never intercepts clicks (pointer-events:none).
  */
 import { useEffect, useRef, useState } from "react";
-import { usePrefersReducedMotion } from "@/lib/reduced-motion";
 
-const SIGNAL = "#3d5afe";
-const MUTED = "#6b7178";
-const TRAIL_LEN = 22;
-const LIFETIME = 450; // ms
-
-type Point = { x: number; y: number; t: number; v: number };
+const INTERACTIVE = 'a, button, input, textarea, select, label, [role="button"], [data-magnetic]';
 
 export default function Cursor() {
-  const reduced = usePrefersReducedMotion();
   const [enabled, setEnabled] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const dotRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<HTMLDivElement>(null);
 
-  // Only enable on fine pointers when motion is allowed.
+  // Enable only on fine pointers with motion allowed; react to changes.
   useEffect(() => {
-    if (reduced) {
-      setEnabled(false);
-      return;
-    }
     const fine = window.matchMedia("(pointer: fine)");
-    const update = () => setEnabled(fine.matches);
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setEnabled(fine.matches && !reduce.matches);
     update();
     fine.addEventListener("change", update);
-    return () => fine.removeEventListener("change", update);
-  }, [reduced]);
-
-  // Toggle the body flag that hides the system cursor.
-  useEffect(() => {
-    if (enabled) {
-      document.body.setAttribute("data-cursor", "on");
-      return () => document.body.removeAttribute("data-cursor");
-    }
-  }, [enabled]);
+    reduce.addEventListener("change", update);
+    return () => {
+      fine.removeEventListener("change", update);
+      reduce.removeEventListener("change", update);
+    };
+  }, []);
 
   useEffect(() => {
     if (!enabled) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const dot = dotRef.current;
+    const ring = ringRef.current;
+    if (!dot || !ring) return;
 
-    let dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const resize = () => {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-      canvas.style.width = `${window.innerWidth}px`;
-      canvas.style.height = `${window.innerHeight}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
-    window.addEventListener("resize", resize);
+    document.body.setAttribute("data-cursor", "on");
 
-    const points: Point[] = [];
-    let lastX = 0;
-    let lastY = 0;
-    let lastT = performance.now();
-    let hasMoved = false;
+    let px = window.innerWidth / 2;
+    let py = window.innerHeight / 2;
+    let rx = px;
+    let ry = py;
+    let vx = 0;
+    let vy = 0;
+    let lastX = px;
+    let lastY = py;
+    let hovering = false;
+    let visible = false;
 
     const onMove = (e: PointerEvent) => {
-      const now = performance.now();
-      const dt = Math.max(now - lastT, 1);
-      const dist = Math.hypot(e.clientX - lastX, e.clientY - lastY);
-      const v = dist / dt; // px per ms
-      points.push({ x: e.clientX, y: e.clientY, t: now, v });
-      if (points.length > TRAIL_LEN) points.shift();
-      lastX = e.clientX;
-      lastY = e.clientY;
-      lastT = now;
-      hasMoved = true;
+      px = e.clientX;
+      py = e.clientY;
+      vx = px - lastX;
+      vy = py - lastY;
+      lastX = px;
+      lastY = py;
+      hovering = !!(e.target as Element)?.closest?.(INTERACTIVE);
+      if (!visible) {
+        visible = true;
+        dot.style.opacity = "1";
+        ring.style.opacity = "1";
+      }
+    };
+    const onLeave = () => {
+      visible = false;
+      dot.style.opacity = "0";
+      ring.style.opacity = "0";
     };
     window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("pointerout", (e) => {
+      if (!e.relatedTarget) onLeave();
+    });
 
     let raf = 0;
     const render = () => {
-      const now = performance.now();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Ring eases toward the pointer (lerp 0.15).
+      rx += (px - rx) * 0.15;
+      ry += (py - ry) * 0.15;
 
-      // Trail: oldest → newest, fading out over LIFETIME.
-      for (let i = 0; i < points.length; i++) {
-        const p = points[i];
-        const age = now - p.t;
-        if (age > LIFETIME) continue;
-        const life = 1 - age / LIFETIME;
-        const speed = Math.min(p.v / 1.5, 1); // normalize velocity
-        const radius = 2 + speed * 3; // 2–5px
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, radius * life, 0, Math.PI * 2);
-        // brighter/--signal at high velocity, --muted when slow
-        ctx.fillStyle = speed > 0.5 ? SIGNAL : MUTED;
-        ctx.globalAlpha = life * 0.8;
-        ctx.fill();
-      }
+      const speed = Math.min(Math.hypot(vx, vy) / 18, 1); // 0..1
+      // velocity grows the ring; hover shrinks + fills it.
+      const ringScale = hovering ? 0.55 : 1 + speed * 0.4;
+      vx *= 0.85;
+      vy *= 0.85;
 
-      // Lead dot at the live pointer.
-      if (hasMoved) {
-        ctx.beginPath();
-        ctx.arc(lastX, lastY, 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = SIGNAL;
-        ctx.globalAlpha = 1;
-        ctx.fill();
-      }
+      dot.style.transform = `translate3d(${px}px, ${py}px, 0) translate(-50%, -50%)`;
+      ring.style.transform = `translate3d(${rx}px, ${ry}px, 0) translate(-50%, -50%) scale(${ringScale})`;
+      ring.style.backgroundColor = hovering
+        ? "color-mix(in srgb, var(--color-signal) 18%, transparent)"
+        : "transparent";
+      ring.style.borderColor = hovering
+        ? "var(--color-signal)"
+        : "color-mix(in srgb, var(--color-signal) 55%, transparent)";
 
       raf = requestAnimationFrame(render);
     };
@@ -121,18 +102,27 @@ export default function Cursor() {
 
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
       window.removeEventListener("pointermove", onMove);
+      document.body.removeAttribute("data-cursor");
     };
   }, [enabled]);
 
   if (!enabled) return null;
 
   return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-[9999]"
-    />
+    <>
+      <div
+        ref={ringRef}
+        aria-hidden="true"
+        className="pointer-events-none fixed left-0 top-0 z-[9999] h-[26px] w-[26px] rounded-full border opacity-0"
+        style={{ transition: "opacity 0.25s var(--ease)" }}
+      />
+      <div
+        ref={dotRef}
+        aria-hidden="true"
+        className="pointer-events-none fixed left-0 top-0 z-[9999] h-1.5 w-1.5 rounded-full bg-signal opacity-0"
+        style={{ transition: "opacity 0.25s var(--ease)" }}
+      />
+    </>
   );
 }

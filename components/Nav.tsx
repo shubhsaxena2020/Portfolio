@@ -49,10 +49,11 @@ export default function Nav() {
       <nav className="container flex h-16 items-center justify-between" aria-label="Primary">
         <button
           onClick={() => go("hero")}
-          className="font-display text-xl font-bold tracking-tight text-signal"
-          aria-label="Back to top"
+          className="font-display text-base font-bold tracking-tight text-ink sm:text-lg"
+          aria-label="Shubh Saxena — back to top"
         >
-          SB
+          {/* Full wordmark — fits comfortably from 360px up. */}
+          Shubh Saxena<span className="text-signal">.</span>
         </button>
 
         {/* Center links — desktop only */}

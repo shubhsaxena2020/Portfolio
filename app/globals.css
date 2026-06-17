@@ -7,12 +7,14 @@
    --font-jetbrains-mono onto <html>; we map them to roles here.
    ───────────────────────────────────────────────────────────── */
 @theme {
-  --color-ink: #0b0d10;
-  --color-paper: #f2f0eb;
+  --color-ink: #0a0a0b;
+  --color-ink-2: #14161a;
+  --color-paper: #eceae3;
   --color-surface: #ffffff;
-  --color-signal: #3d5afe;
-  --color-grid: #d8d6cf;
-  --color-muted: #6b7178;
+  --color-signal: #2b4bff;
+  --color-signal-2: #6c8bff;
+  --color-grid: #d2cfc6;
+  --color-muted: #5e636b;
 
   --font-display: var(--font-space-grotesk), "Space Grotesk", sans-serif;
   --font-body: var(--font-inter), "Inter", system-ui, sans-serif;
@@ -98,6 +100,25 @@ body {
     linear-gradient(to bottom, var(--color-grid) 1px, transparent 1px);
   background-size: 56px 56px;
   opacity: 0.35;
+}
+
+/* Dark sections: a faint 1px top "scanline" sheen for the engineered feel. */
+.dark-section {
+  position: relative;
+}
+.dark-section::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-signal-2) 60%, transparent),
+    transparent
+  );
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 /* Hero grid fades out toward the lower-right so it stays a faint backdrop. */

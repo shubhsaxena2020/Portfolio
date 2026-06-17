@@ -18,8 +18,8 @@ type Stat = {
 };
 
 const STATS: Stat[] = [
-  { target: 3, label: "Products shipped" },
-  { target: 7, label: "Day avg. delivery" },
+  { target: 248, suffix: "h", label: "Last build" },
+  { target: 7, label: "Day turnaround" },
   { target: 24, suffix: "h", label: "Reply time" },
 ];
 
@@ -48,12 +48,12 @@ export default function About() {
       gsap.registerPlugin(ScrollTrigger);
 
       ctx = gsap.context(() => {
-        gsap.set(reveals, { opacity: 0, y: 32 });
+        gsap.set(reveals, { opacity: 0, y: 24 });
 
         gsap.to(reveals, {
           opacity: 1,
           y: 0,
-          duration: 0.7,
+          duration: 0.6,
           stagger: 0.12,
           ease: "power3.out",
           scrollTrigger: { trigger: root, start: "top 80%", once: true },
@@ -115,19 +115,19 @@ export default function About() {
             className="font-display mt-4 font-bold leading-[1.1] tracking-tight"
             style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)" }}
           >
-            Seventeen. Already shipping.
+            Young, but already shipping.
           </h2>
 
           <p data-reveal className="mt-6 max-w-2xl text-muted">
-            I&apos;m Shubh — a developer from India who treats AI as a build
-            crew, not a toy. Instead of typing every line, I architect what
-            needs to exist and direct AI tools to build it, fast. The output
-            is the same thing any studio ships: real, working products.
+            I&apos;m Shubh — an independent developer from India. I take an idea
+            that only half-exists and turn it into something real, fast:
+            designed, built, and shipped to production. I care about the part
+            clients actually feel — speed, polish, and a result that works.
           </p>
           <p data-reveal className="mt-4 max-w-2xl text-muted">
-            I&apos;ve launched an e-commerce store, built a local-first desktop
-            app, and engineered a 3D furniture viewer from photos. Now I take
-            that same pipeline and point it at your website.
+            My range runs from storefronts to full products — e-commerce, a
+            local-first desktop app, a 3D product viewer. Whatever the brief, I
+            treat it like my own name is on it. Because it is.
           </p>
 
           {/* Stat strip */}

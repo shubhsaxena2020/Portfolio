@@ -58,10 +58,19 @@ export default function Contact() {
   };
 
   const fieldClass =
-    "w-full rounded-[10px] border bg-[color-mix(in_srgb,var(--color-ink)_3%,var(--color-surface))] px-4 py-3 text-sm text-ink outline-none placeholder:text-muted focus:border-signal";
+    "w-full rounded-[10px] border bg-[color-mix(in_srgb,var(--color-paper)_6%,var(--color-ink-2))] px-4 py-3 text-sm text-paper outline-none placeholder:text-[color-mix(in_srgb,var(--color-paper)_45%,transparent)] focus:border-signal";
+
+  const STEPS = [
+    { n: "01", t: "you send the brief" },
+    { n: "02", t: "I reply within 24h with a direction" },
+    { n: "03", t: "we ship" },
+  ];
 
   return (
-    <section id="contact" className="bg-ink py-24 text-paper sm:py-32">
+    <section
+      id="contact"
+      className="dark-section bg-ink py-24 text-paper sm:py-32"
+    >
       <div className="container">
         <h2
           className="font-display font-bold leading-[1.1] tracking-tight"
@@ -73,10 +82,24 @@ export default function Contact() {
           Open for freelance. Reply within 24h · IST.
         </p>
 
-        <div className="mt-12 grid gap-12 md:grid-cols-[1fr_minmax(0,520px)]">
-          {/* Links column */}
+        <div className="mt-12 grid gap-10 md:grid-cols-[1fr_minmax(0,520px)] md:gap-12">
+          {/* Left column: what-happens-next + links */}
           <div className="order-2 md:order-1">
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-[color-mix(in_srgb,var(--color-paper)_55%,transparent)]">
+              WHAT HAPPENS NEXT
+            </p>
+            <ol className="mt-5 flex flex-col gap-4">
+              {STEPS.map((s) => (
+                <li key={s.n} className="flex items-baseline gap-4 font-mono text-sm">
+                  <span className="text-signal">{s.n}</span>
+                  <span className="text-[color-mix(in_srgb,var(--color-paper)_85%,transparent)]">
+                    {s.t}
+                  </span>
+                </li>
+              ))}
+            </ol>
+
+            <p className="mt-10 font-mono text-xs uppercase tracking-[0.2em] text-[color-mix(in_srgb,var(--color-paper)_55%,transparent)]">
               ELSEWHERE
             </p>
             <ul className="mt-5 flex flex-col gap-3 font-mono text-sm">
@@ -117,13 +140,13 @@ export default function Contact() {
           <form
             noValidate
             onSubmit={onSubmit}
-            className="order-1 rounded-[14px] border border-[color-mix(in_srgb,var(--color-paper)_15%,transparent)] bg-surface p-6 text-ink sm:p-8 md:order-2"
+            className="order-1 rounded-[14px] border border-[color-mix(in_srgb,var(--color-paper)_12%,transparent)] bg-ink-2 p-6 text-paper sm:p-8 md:order-2"
           >
             <div className="flex flex-col gap-5">
               <div>
                 <label
                   htmlFor="name"
-                  className="font-mono text-xs uppercase tracking-wider text-muted"
+                  className="font-mono text-xs uppercase tracking-wider text-[color-mix(in_srgb,var(--color-paper)_65%,transparent)]"
                 >
                   Name
                 </label>
@@ -135,11 +158,13 @@ export default function Contact() {
                   aria-invalid={!!errors.name}
                   aria-describedby={errors.name ? "name-err" : undefined}
                   className={`mt-2 ${fieldClass} ${
-                    errors.name ? "border-signal" : "border-grid"
+                    errors.name
+                      ? "border-signal"
+                      : "border-[color-mix(in_srgb,var(--color-paper)_18%,transparent)]"
                   }`}
                 />
                 {errors.name && (
-                  <p id="name-err" className="mt-1.5 font-mono text-xs text-signal">
+                  <p id="name-err" className="mt-1.5 font-mono text-xs text-signal-2">
                     {errors.name}
                   </p>
                 )}
@@ -148,7 +173,7 @@ export default function Contact() {
               <div>
                 <label
                   htmlFor="email"
-                  className="font-mono text-xs uppercase tracking-wider text-muted"
+                  className="font-mono text-xs uppercase tracking-wider text-[color-mix(in_srgb,var(--color-paper)_65%,transparent)]"
                 >
                   Email
                 </label>
@@ -160,11 +185,13 @@ export default function Contact() {
                   aria-invalid={!!errors.email}
                   aria-describedby={errors.email ? "email-err" : undefined}
                   className={`mt-2 ${fieldClass} ${
-                    errors.email ? "border-signal" : "border-grid"
+                    errors.email
+                      ? "border-signal"
+                      : "border-[color-mix(in_srgb,var(--color-paper)_18%,transparent)]"
                   }`}
                 />
                 {errors.email && (
-                  <p id="email-err" className="mt-1.5 font-mono text-xs text-signal">
+                  <p id="email-err" className="mt-1.5 font-mono text-xs text-signal-2">
                     {errors.email}
                   </p>
                 )}
@@ -173,7 +200,7 @@ export default function Contact() {
               <div>
                 <label
                   htmlFor="message"
-                  className="font-mono text-xs uppercase tracking-wider text-muted"
+                  className="font-mono text-xs uppercase tracking-wider text-[color-mix(in_srgb,var(--color-paper)_65%,transparent)]"
                 >
                   Message
                 </label>
@@ -184,13 +211,15 @@ export default function Contact() {
                   aria-invalid={!!errors.message}
                   aria-describedby={errors.message ? "message-err" : undefined}
                   className={`mt-2 resize-y ${fieldClass} ${
-                    errors.message ? "border-signal" : "border-grid"
+                    errors.message
+                      ? "border-signal"
+                      : "border-[color-mix(in_srgb,var(--color-paper)_18%,transparent)]"
                   }`}
                 />
                 {errors.message && (
                   <p
                     id="message-err"
-                    className="mt-1.5 font-mono text-xs text-signal"
+                    className="mt-1.5 font-mono text-xs text-signal-2"
                   >
                     {errors.message}
                   </p>
@@ -208,16 +237,16 @@ export default function Contact() {
               {/* aria-live status region */}
               <p aria-live="polite" className="min-h-5 font-mono text-xs">
                 {status === "ok" && (
-                  <span className="text-signal">
+                  <span className="text-signal-2">
                     Request received. I&apos;ll reply within 24h.
                   </span>
                 )}
                 {status === "error" && (
-                  <span className="text-muted">
+                  <span className="text-[color-mix(in_srgb,var(--color-paper)_70%,transparent)]">
                     Didn&apos;t send — email me at{" "}
                     <a
                       href={`mailto:${CONTACT_EMAIL}`}
-                      className="text-signal underline"
+                      className="text-signal-2 underline"
                     >
                       {CONTACT_EMAIL}
                     </a>
@@ -230,7 +259,7 @@ export default function Contact() {
         </div>
 
         <footer className="mt-20 border-t border-[color-mix(in_srgb,var(--color-paper)_12%,transparent)] pt-8 font-mono text-xs text-[color-mix(in_srgb,var(--color-paper)_55%,transparent)]">
-          © 2026 Shubh Saxena · directed, not typed.
+          © 2026 Shubh Saxena · built with intent.
         </footer>
       </div>
     </section>

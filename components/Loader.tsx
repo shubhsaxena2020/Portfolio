@@ -11,7 +11,6 @@
  * - Reduced-motion: render nothing; content is visible immediately.
  */
 import { useEffect, useState } from "react";
-import { usePrefersReducedMotion } from "@/lib/reduced-motion";
 
 /** Signals Hero that the intro is over (or never ran) so it can assemble. */
 function signalLoaderDone() {
@@ -20,28 +19,27 @@ function signalLoaderDone() {
 }
 
 export default function Loader() {
-  const reduced = usePrefersReducedMotion();
   const [mounted, setMounted] = useState(false);
   const [count, setCount] = useState(0);
   const [deployed, setDeployed] = useState(false);
   const [slideUp, setSlideUp] = useState(false);
   const [done, setDone] = useState(false);
 
-  // Decide whether to show the loader at all (client-only, after RM check).
+  // Decide whether to show the loader at all. Read reduced-motion directly
+  // (synchronously) here so reduced users never see it start, and so the
+  // decision doesn't wait on the async hook. Renders null until decided.
   useEffect(() => {
-    if (reduced) {
-      setDone(true);
-      signalLoaderDone();
-      return;
-    }
-    if (sessionStorage.getItem("seen-loader")) {
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    if (reduced || sessionStorage.getItem("seen-loader")) {
       setDone(true);
       signalLoaderDone();
       return;
     }
     sessionStorage.setItem("seen-loader", "1");
     setMounted(true);
-  }, [reduced]);
+  }, []);
 
   // Drive the 0→100 counter, then the deploy flash + slide-up.
   useEffect(() => {

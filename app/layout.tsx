@@ -29,28 +29,28 @@ const SITE_URL = "https://shubhbuilds.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Shubh Saxena · AI-directed web developer",
+  title: "Shubh Saxena · Independent developer",
   description:
-    "Operator who directs AI to ship real products. 17, self-taught, three shipped builds and counting.",
+    "I turn ambitious ideas into real-world products. Design, build, ship — websites and products that earn their keep.",
   openGraph: {
-    title: "Shubh Saxena · AI-directed web developer",
+    title: "Shubh Saxena · Independent developer",
     description:
-      "Operator who directs AI to ship real products. Three shipped builds and counting.",
+      "I turn ambitious ideas into real-world products. Design, build, ship.",
     url: SITE_URL,
-    siteName: "shubh.build",
+    siteName: "Shubh Saxena",
     images: [{ url: "/og.png", width: 1200, height: 630 }], // TODO: add public/og.png (1200×630)
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Shubh Saxena · AI-directed web developer",
-    description: "Operator who directs AI to ship real products.",
+    title: "Shubh Saxena · Independent developer",
+    description: "I turn ambitious ideas into real-world products.",
     images: ["/og.png"],
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0B0D10",
+  themeColor: "#0A0A0B",
   width: "device-width",
   initialScale: 1,
 };

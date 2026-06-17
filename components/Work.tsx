@@ -1,15 +1,45 @@
 "use client";
 
 /**
- * Real projects rendered as "build records" (doc 01/02).
- * Data comes from the typed lib/projects.ts (single source). Each record:
- *   mono `build_NN · <year>` · category pill · title · result · tech chips ·
- *   link button. Screenshots may not exist yet → intentional placeholder
- *   panel (TODO: swap to next/image once public/work/*.png are added).
- * Alternating slide-in reveal; reduced-motion → final state.
+ * Real projects rendered as "build records" (doc 01/02/06).
+ * Data from typed lib/projects.ts. Each record: mono `build_NN · <year>` ·
+ * category pill · title · result · tech chips · link.
+ *
+ * Visuals (doc 06 E1): a designed brand tile (gradient + wordmark in the
+ * site's language) stands in until a real screenshot exists — never a grey
+ * "pending" box. If a project sets hasImage:true, its public/work/* image is
+ * shown via next/image instead.
+ *
+ * Motion (doc 06 E2): alternating slide-in reveal · subtle image parallax ·
+ * tech-chip stagger after the card lands · hover image zoom + signal corner
+ * brackets. Reduced-motion → final state, no timelines.
  */
 import { useEffect, useRef } from "react";
-import { projects } from "@/lib/projects";
+import Image from "next/image";
+import { projects, type Project } from "@/lib/projects";
+
+function BrandTile({ project }: { project: Project }) {
+  return (
+    <div className="relative flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,var(--color-ink),var(--color-ink-2))]">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 opacity-70"
+        style={{
+          background:
+            "radial-gradient(120% 90% at 15% 10%, color-mix(in srgb, var(--color-signal) 38%, transparent), transparent 55%)",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="grid-bg absolute inset-0 opacity-20"
+      />
+      <span className="relative font-display text-3xl font-bold tracking-tight text-paper sm:text-4xl">
+        {project.wordmark}
+        <span className="text-signal-2">.</span>
+      </span>
+    </div>
+  );
+}
 
 export default function Work() {
   const rootRef = useRef<HTMLElement>(null);
@@ -19,7 +49,6 @@ export default function Work() {
     if (!root) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    const rows = Array.from(root.querySelectorAll<HTMLElement>("[data-row]"));
     let killed = false;
     let ctx: gsap.Context | undefined;
 
@@ -30,15 +59,48 @@ export default function Work() {
       gsap.registerPlugin(ScrollTrigger);
 
       ctx = gsap.context(() => {
+        const rows = Array.from(
+          root.querySelectorAll<HTMLElement>("[data-row]")
+        );
+
         rows.forEach((row, i) => {
-          gsap.set(row, { opacity: 0, x: i % 2 === 0 ? -40 : 40 });
-          gsap.to(row, {
-            opacity: 1,
-            x: 0,
-            duration: 0.7,
-            ease: "power3.out",
+          const chips = row.querySelectorAll<HTMLElement>("[data-chip]");
+          const parallax = row.querySelector<HTMLElement>("[data-parallax]");
+
+          // Alternating slide-in + chip stagger after the card lands.
+          gsap.set(chips, { opacity: 0, y: 8 });
+          const tl = gsap.timeline({
             scrollTrigger: { trigger: row, start: "top 80%", once: true },
           });
+          tl.fromTo(
+            row,
+            { opacity: 0, x: i % 2 === 0 ? -40 : 40 },
+            { opacity: 1, x: 0, duration: 0.6, ease: "power3.out" }
+          );
+          tl.to(
+            chips,
+            { opacity: 1, y: 0, duration: 0.3, stagger: 0.05, ease: "power3.out" },
+            "-=0.2"
+          );
+
+          // Subtle parallax: image layer drifts opposite scroll within frame.
+          if (parallax) {
+            gsap.set(parallax, { scale: 1.1 });
+            gsap.fromTo(
+              parallax,
+              { y: -14 },
+              {
+                y: 14,
+                ease: "none",
+                scrollTrigger: {
+                  trigger: row,
+                  start: "top bottom",
+                  end: "bottom top",
+                  scrub: true,
+                },
+              }
+            );
+          }
         });
       }, root);
     })();
@@ -71,13 +133,33 @@ export default function Work() {
                 i % 2 === 1 ? "md:[&>*:first-child]:order-2" : ""
               }`}
             >
-              {/* Visual placeholder (TODO: replace with next/image p.image) */}
-              <div className="overflow-hidden rounded-[14px] border border-grid bg-surface">
-                <div className="flex aspect-[16/10] items-center justify-center bg-[color-mix(in_srgb,var(--color-ink)_4%,var(--color-surface))]">
-                  <span className="font-mono text-xs uppercase tracking-widest text-grid">
-                    {p.id} · screenshot pending
-                  </span>
+              {/* Visual frame: brand tile (or real image) + hover zoom + brackets */}
+              <div className="group relative aspect-[16/10] overflow-hidden rounded-[14px] border border-grid">
+                <div data-parallax className="absolute inset-0 will-change-transform">
+                  <div className="h-full w-full transition-transform duration-500 ease-out group-hover:scale-[1.03]">
+                    {p.hasImage ? (
+                      <Image
+                        src={p.image}
+                        alt={`${p.title} — ${p.category}`}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <BrandTile project={p} />
+                    )}
+                  </div>
                 </div>
+
+                {/* Signal corner brackets draw in on hover. */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-3 top-3 h-5 w-5 border-l-2 border-t-2 border-signal opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                />
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-signal opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                />
               </div>
 
               {/* Record details */}
@@ -99,6 +181,7 @@ export default function Work() {
                   {p.tech.map((t) => (
                     <li
                       key={t}
+                      data-chip
                       className="rounded-md bg-[color-mix(in_srgb,var(--color-ink)_5%,transparent)] px-2.5 py-1 font-mono text-[11px] text-ink"
                     >
                       {t}

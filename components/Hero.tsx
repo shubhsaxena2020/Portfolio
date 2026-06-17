@@ -16,6 +16,7 @@
  */
 import { useEffect, useLayoutEffect, useRef } from "react";
 import GridBg from "@/components/GridBg";
+import Magnetic from "@/components/Magnetic";
 
 const useIsoLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -38,6 +39,7 @@ export default function Hero() {
     ).matches;
     if (prefersReduced) return; // leave final state on screen, run nothing
 
+    const eyebrow = root.querySelector<HTMLElement>("[data-eyebrow]");
     const lines = Array.from(
       root.querySelectorAll<HTMLElement>("[data-line]")
     );
@@ -49,10 +51,14 @@ export default function Hero() {
     const INIT = "> initializing shubh.build …";
 
     // Pre-paint: hide everything the timeline will reveal, reset the status.
+    if (eyebrow) {
+      eyebrow.style.opacity = "0";
+      eyebrow.style.transform = "translateY(8px)";
+    }
     lines.forEach((l) => {
       l.style.opacity = "0";
-      l.style.filter = "blur(10px)";
-      l.style.transform = "translateY(10px)";
+      l.style.filter = "blur(8px)";
+      l.style.transform = "translateY(24px)";
       l.style.color = "var(--color-muted)";
     });
     reveals.forEach((r) => {
@@ -75,10 +81,15 @@ export default function Hero() {
       const proxy = { n: 0 };
       tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
-      // 1. type the status line, then snap to "> ready"
+      // 1. eyebrow fades in
+      if (eyebrow) {
+        tl.to(eyebrow, { opacity: 1, y: 0, duration: 0.3 });
+      }
+
+      // 2. type the status line, then snap to "> ready"
       tl.to(proxy, {
         n: INIT.length,
-        duration: 0.8,
+        duration: 0.7,
         ease: "none",
         onUpdate: () => {
           status.textContent = INIT.slice(0, Math.round(proxy.n));
@@ -89,7 +100,7 @@ export default function Hero() {
           '&gt; <span style="color:var(--color-signal)">ready</span>';
       }, "+=0.15");
 
-      // 2. headline lines assemble (ghost → real glyphs)
+      // 3. headline lines assemble: rise + un-blur, stagger
       tl.to(
         lines,
         {
@@ -97,18 +108,18 @@ export default function Hero() {
           filter: "blur(0px)",
           y: 0,
           color: "", // back to inherited (ink, or the inline signal spans)
-          duration: 0.5,
+          duration: 0.6,
           stagger: 0.12,
         },
         "+=0.05"
       );
 
-      // 3. signal rule sweeps to finish the build
+      // 4. signal rule sweeps to finish the build
       if (rule) {
-        tl.to(rule, { scaleX: 1, duration: 0.5 }, "-=0.1");
+        tl.to(rule, { scaleX: 1, duration: 0.5 }, "-=0.15");
       }
 
-      // 4. subline + buttons fade up
+      // 5. subline + buttons fade up
       tl.to(
         reveals,
         { opacity: 1, y: 0, duration: 0.4, stagger: 0.1 },
@@ -143,7 +154,10 @@ export default function Hero() {
 
       <div className="container relative">
         {/* Eyebrow */}
-        <p className="font-mono text-xs uppercase tracking-[0.25em] text-muted">
+        <p
+          data-eyebrow
+          className="font-mono text-xs uppercase tracking-[0.25em] text-muted"
+        >
           OPERATOR · INDIA · UTC+5:30
         </p>
 
@@ -160,10 +174,10 @@ export default function Hero() {
           style={{ fontSize: "clamp(2.6rem, 6vw, 5.5rem)" }}
         >
           <span data-line className="block">
-            I direct AI to
+            I turn ambitious ideas into
           </span>
           <span data-line className="block">
-            ship <span className="text-signal">real products.</span>
+            <span className="text-signal">real-world products.</span>
           </span>
         </h1>
 
@@ -179,23 +193,27 @@ export default function Hero() {
           data-reveal
           className="mt-7 max-w-xl text-base text-muted sm:text-lg"
         >
-          17. Self-taught. Three shipped builds and counting.
+          Design, build, ship. Websites and products that earn their keep.
         </p>
 
         {/* Buttons */}
         <div data-reveal className="mt-9 flex flex-col gap-3 sm:flex-row">
-          <button
-            onClick={() => scrollToId("work")}
-            className="rounded-[10px] bg-signal px-6 py-3 font-mono text-sm font-medium text-white transition-transform duration-200 hover:scale-[1.03]"
-          >
-            See the work
-          </button>
-          <button
-            onClick={() => scrollToId("contact")}
-            className="rounded-[10px] border border-ink px-6 py-3 font-mono text-sm font-medium text-ink transition-colors duration-200 hover:bg-ink hover:text-paper"
-          >
-            Start a build
-          </button>
+          <Magnetic>
+            <button
+              onClick={() => scrollToId("work")}
+              className="rounded-[10px] bg-signal px-6 py-3 font-mono text-sm font-medium text-white transition-transform duration-200 hover:scale-[1.03]"
+            >
+              See the work
+            </button>
+          </Magnetic>
+          <Magnetic>
+            <button
+              onClick={() => scrollToId("contact")}
+              className="rounded-[10px] border border-ink px-6 py-3 font-mono text-sm font-medium text-ink transition-colors duration-200 hover:bg-ink hover:text-paper"
+            >
+              Start a build
+            </button>
+          </Magnetic>
         </div>
       </div>
 

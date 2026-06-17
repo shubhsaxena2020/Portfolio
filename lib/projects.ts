@@ -23,6 +23,14 @@ export type Project = {
   link: ProjectLink;
   /** Screenshot path under /public. May not exist yet → graceful fallback. */
   image: string;
+  /** Wordmark shown on the designed brand tile when no screenshot exists. */
+  wordmark: string;
+  /**
+   * Flip to true once the real screenshot at `image` is added to public/work.
+   * While false, the Work section renders a designed brand tile instead of a
+   * broken image, so nothing ever looks unfinished.
+   */
+  hasImage?: boolean;
 };
 
 export const projects: Project[] = [
@@ -33,9 +41,10 @@ export const projects: Project[] = [
     category: "E-Commerce",
     result:
       "A conversion-focused Shopify store for a posture-corrector brand — custom design, mobile-tuned.",
-    tech: ["Shopify", "Custom CSS", "AI-assisted"],
+    tech: ["Shopify", "Liquid", "Custom CSS"],
     link: { href: "https://getbreathify.store", label: "View live →" },
-    image: "/work/breathify.png", // TODO: add screenshot — public/work/breathify.png
+    image: "/work/breathify.png", // TODO: add screenshot — public/work/breathify.png, then set hasImage:true
+    wordmark: "Breathify",
   },
   {
     id: "build_02",
@@ -49,7 +58,8 @@ export const projects: Project[] = [
       href: "https://github.com/shubhsaxena2020/cortex",
       label: "View code →",
     },
-    image: "/work/cortex.png", // TODO: add screenshot — public/work/cortex.png
+    image: "/work/cortex.png", // TODO: add screenshot — public/work/cortex.png, then set hasImage:true
+    wordmark: "Cortex",
   },
   {
     id: "build_03",
@@ -63,7 +73,8 @@ export const projects: Project[] = [
       href: "https://github.com/shubhsaxena2020/furniture-3d-viewer",
       label: "View code →",
     },
-    image: "/work/furniture.png", // TODO: add screenshot — public/work/furniture.png
+    image: "/work/furniture.png", // TODO: optional screenshot — public/work/furniture.png, then set hasImage:true
+    wordmark: "Furniture3D",
   },
 
   // ── SparkClean — ADD DAY 4, once the demo is deployed (doc 02). ──
@@ -77,5 +88,7 @@ export const projects: Project[] = [
   //   tech: ["Next.js", "Tailwind", "Framer Motion"],
   //   link: { href: "TODO_VERCEL_DEMO_URL", label: "View demo →" },
   //   image: "/work/sparkclean.png",
+  //   wordmark: "SparkClean",
+  //   hasImage: true,
   // },
 ];
