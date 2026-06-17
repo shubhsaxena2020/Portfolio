@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   Design tokens — single source of truth (doc 01).
+   Every color/type/spacing choice derives from these.
+   next/font injects --font-space-grotesk / --font-inter /
+   --font-jetbrains-mono onto <html>; we map them to roles here.
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  --color-ink: #0b0d10;
+  --color-paper: #f2f0eb;
+  --color-surface: #ffffff;
+  --color-signal: #3d5afe;
+  --color-grid: #d8d6cf;
+  --color-muted: #6b7178;
+
+  --font-display: var(--font-space-grotesk), "Space Grotesk", sans-serif;
+  --font-body: var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", monospace;
+
+  --radius-base: 14px;
+  --maxw: 1200px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Expose non-color tokens as plain custom properties too, so they're
+   usable in raw CSS / inline styles, not just Tailwind utilities. */
+:root {
+  --radius: 14px;
+  --maxw: 1200px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-weight: 400;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* The custom cursor replaces the system cursor on fine-pointer devices. */
+@media (pointer: fine) {
+  body[data-cursor="on"],
+  body[data-cursor="on"] * {
+    cursor: none;
+  }
+}
+
+/* Visible focus rings everywhere — --signal, never removed. */
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip-to-content link (first in DOM). */
+.skip-link {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translateY(-120%);
+  z-index: 10000;
+  background: var(--color-signal);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 0.6rem 1rem;
+  transition: transform 0.2s var(--ease);
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.container {
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 4vw, 2.5rem);
+}
+
+/* Faint design-tool baseline grid (used behind hero via GridBg). */
+.grid-bg {
+  background-image:
+    linear-gradient(to right, var(--color-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-grid) 1px, transparent 1px);
+  background-size: 56px 56px;
+  opacity: 0.35;
+}
+
+/* Hero grid fades out toward the lower-right so it stays a faint backdrop. */
+.hero-grid-mask {
+  -webkit-mask-image: radial-gradient(120% 100% at 0% 0%, black 35%, transparent 80%);
+  mask-image: radial-gradient(120% 100% at 0% 0%, black 35%, transparent 80%);
+}
+
+/* Scroll hint — gentle 6px bob (disabled under reduced-motion below). */
+@keyframes hero-bob {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, 6px);
+  }
+}
+.hero-scroll-hint {
+  animation: hero-bob 1.8s var(--ease) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
