@@ -8,7 +8,8 @@
  *  - OUTER wrapper: GSAP scroll-in (rise + fade, stagger). Pro arrives last
  *    and "locks" with a 1→1.04→1 scale overshoot.
  *  - INNER card: Framer tilt (±6°, perspective 1000px) + a soft --signal glow
- *    that tracks the cursor. Tilt/glow disabled on touch + reduced-motion.
+ *    that tracks the cursor + a 6px vertical lift on hover. Tilt/glow/lift disabled
+ *    on touch + reduced-motion.
  *  - CTAs: magnetic hover.
  */
 import { useEffect, useRef } from "react";
@@ -42,7 +43,7 @@ const TIERS: Tier[] = [
       "Basic SEO",
       "7-day delivery",
     ],
-    price: "From $100",
+    price: "From $200", // Updated to match docs/02_CONTENT.md
   },
   {
     label: "PRO",
@@ -55,7 +56,7 @@ const TIERS: Tier[] = [
       "Performance-tuned",
       "14-day delivery",
     ],
-    price: "From $300",
+    price: "From $500", // Updated to match docs/02_CONTENT.md
     featured: true,
   },
   {
@@ -69,7 +70,7 @@ const TIERS: Tier[] = [
       "Cinematic scroll",
       "21-day delivery",
     ],
-    price: "From $700",
+    price: "From $1,000", // Updated to match docs/02_CONTENT.md
   },
 ];
 
@@ -81,25 +82,38 @@ function TierCard({ tier, tiltEnabled }: { tier: Tier; tiltEnabled: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const rx = useMotionValue(0);
   const ry = useMotionValue(0);
+  const y = useMotionValue(0);
+  
   const springRX = useSpring(rx, { stiffness: 220, damping: 18 });
   const springRY = useSpring(ry, { stiffness: 220, damping: 18 });
+  const springY = useSpring(y, { stiffness: 220, damping: 18 });
+
   const rotateX = useTransform(springRX, (v) => `${v}deg`);
   const rotateY = useTransform(springRY, (v) => `${v}deg`);
 
   const onMove = (e: React.MouseEvent) => {
-    if (!tiltEnabled || !ref.current) return;
+    if (!ref.current) return;
     const rect = ref.current.getBoundingClientRect();
     const px = (e.clientX - rect.left) / rect.width - 0.5; // -0.5..0.5
     const py = (e.clientY - rect.top) / rect.height - 0.5;
-    ry.set(px * 12); // ±6°
-    rx.set(-py * 12);
+
+    if (tiltEnabled) {
+      ry.set(px * 12); // ±6°
+      rx.set(-py * 12);
+    }
+    
+    // Lift up by 6px
+    y.set(-6);
+
     // cursor-tracking glow position
     ref.current.style.setProperty("--mx", `${(px + 0.5) * 100}%`);
     ref.current.style.setProperty("--my", `${(py + 0.5) * 100}%`);
   };
+
   const reset = () => {
     rx.set(0);
     ry.set(0);
+    y.set(0);
   };
 
   return (
@@ -109,31 +123,34 @@ function TierCard({ tier, tiltEnabled }: { tier: Tier; tiltEnabled: boolean }) {
         ref={ref}
         onMouseMove={onMove}
         onMouseLeave={reset}
-        style={
-          tiltEnabled
-            ? { rotateX, rotateY, transformPerspective: 1000 }
-            : undefined
-        }
-        className={`group relative flex h-full flex-col overflow-hidden rounded-[14px] border bg-surface p-7 ${
+        style={{
+          rotateX: tiltEnabled ? rotateX : 0,
+          rotateY: tiltEnabled ? rotateY : 0,
+          y: springY,
+          transformPerspective: 1000,
+        }}
+        className={`group relative flex h-full flex-col rounded-[14px] border bg-surface p-7 text-ink ${
           tier.featured
             ? "border-signal shadow-[0_0_40px_-12px_var(--color-signal)]"
             : "border-grid"
         }`}
       >
-        {/* cursor-tracking glow */}
+        {/* cursor-tracking glow: isolated overflow container to prevent badge clipping (BUG 4) */}
         {tiltEnabled && (
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-            style={{
-              background:
-                "radial-gradient(220px circle at var(--mx,50%) var(--my,50%), color-mix(in srgb, var(--color-signal) 16%, transparent), transparent 60%)",
-            }}
-          />
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[14px]">
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              style={{
+                background:
+                  "radial-gradient(220px circle at var(--mx,50%) var(--my,50%), color-mix(in srgb, var(--color-signal) 16%, transparent), transparent 60%)",
+              }}
+            />
+          </div>
         )}
 
         {tier.featured && (
-          <span className="absolute -top-3 left-7 rounded-full bg-signal px-3 py-1 font-mono text-[10px] font-medium uppercase tracking-wider text-white">
+          <span className="absolute -top-3 left-7 rounded-full bg-signal px-3 py-1 font-mono text-[10px] font-medium uppercase tracking-wider text-white z-10">
             Most picked
           </span>
         )}
@@ -148,9 +165,9 @@ function TierCard({ tier, tiltEnabled }: { tier: Tier; tiltEnabled: boolean }) {
           {tier.features.map((f) => (
             <li
               key={f}
-              className="flex items-start gap-2 font-mono text-xs text-ink"
+              className="flex items-start gap-2 font-mono text-xs"
             >
-              <span className="mt-px text-signal" aria-hidden="true">
+              <span className="mt-px text-signal font-bold" aria-hidden="true">
                 ✓
               </span>
               <span>{f}</span>
@@ -186,7 +203,7 @@ export default function Services() {
     window.matchMedia("(pointer: coarse)").matches;
   const tiltEnabled = !reduced && !coarse;
 
-  // Scroll-in: side cards stagger, Pro arrives last and locks with overshoot.
+  // Scroll-in: title reveals first, then cards stagger, Pro lands last with overshoot.
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -202,28 +219,49 @@ export default function Services() {
       gsap.registerPlugin(ScrollTrigger);
 
       ctx = gsap.context(() => {
+        const reveals = Array.from(
+          root.querySelectorAll<HTMLElement>("[data-reveal]")
+        );
         const cards = Array.from(
           root.querySelectorAll<HTMLElement>("[data-card]")
         );
         const others = cards.filter((c) => !c.dataset.featured);
         const pro = cards.find((c) => c.dataset.featured);
 
-        gsap.set(cards, { opacity: 0, y: 20 });
+        gsap.set(reveals, { opacity: 0, y: 28 });
+        gsap.set(cards, { opacity: 0, y: 24 });
 
         const tl = gsap.timeline({
           scrollTrigger: { trigger: root, start: "top 75%", once: true },
         });
-        tl.to(others, {
+
+        // 1. Reveal section title/eyebrow
+        tl.to(reveals, {
           opacity: 1,
           y: 0,
-          duration: 0.5,
+          duration: 0.6,
           stagger: 0.1,
-          ease: "power3.out",
+          ease: "power4.out",
         });
+
+        // 2. Stagger standard and elite cards
+        tl.to(
+          others,
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.5,
+            stagger: 0.1,
+            ease: "power4.out",
+          },
+          "-=0.25"
+        );
+
+        // 3. Pro card enters with scale settle overshoot
         if (pro) {
           tl.to(
             pro,
-            { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" },
+            { opacity: 1, y: 0, duration: 0.5, ease: "power4.out" },
             ">-0.05"
           );
           tl.to(
@@ -248,11 +286,12 @@ export default function Services() {
   return (
     <section ref={rootRef} id="services" className="py-24 sm:py-32">
       <div className="container">
-        <p className="font-mono text-xs uppercase tracking-[0.25em] text-muted">
+        <p data-reveal className="font-mono text-xs uppercase tracking-[0.25em] text-muted">
           WHAT I BUILD
         </p>
         <h2
-          className="font-display mt-4 font-bold leading-[1.1] tracking-tight"
+          data-reveal
+          className="font-display mt-4 font-bold leading-[1.1] tracking-tight text-ink"
           style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)" }}
         >
           Three ways to ship.

@@ -59,10 +59,31 @@ export default function Work() {
       gsap.registerPlugin(ScrollTrigger);
 
       ctx = gsap.context(() => {
+        const reveals = Array.from(
+          root.querySelectorAll<HTMLElement>("[data-reveal]")
+        );
         const rows = Array.from(
           root.querySelectorAll<HTMLElement>("[data-row]")
         );
 
+        // Section title reveals
+        if (reveals.length > 0) {
+          gsap.set(reveals, { opacity: 0, y: 28 });
+          gsap.to(reveals, {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            stagger: 0.1,
+            ease: "power4.out",
+            scrollTrigger: {
+              trigger: root,
+              start: "top 85%",
+              once: true,
+            },
+          });
+        }
+
+        // Project rows reveals
         rows.forEach((row, i) => {
           const chips = row.querySelectorAll<HTMLElement>("[data-chip]");
           const parallax = row.querySelector<HTMLElement>("[data-parallax]");
@@ -75,11 +96,11 @@ export default function Work() {
           tl.fromTo(
             row,
             { opacity: 0, x: i % 2 === 0 ? -40 : 40 },
-            { opacity: 1, x: 0, duration: 0.6, ease: "power3.out" }
+            { opacity: 1, x: 0, duration: 0.6, ease: "power4.out" }
           );
           tl.to(
             chips,
-            { opacity: 1, y: 0, duration: 0.3, stagger: 0.05, ease: "power3.out" },
+            { opacity: 1, y: 0, duration: 0.3, stagger: 0.05, ease: "power4.out" },
             "-=0.2"
           );
 
@@ -114,11 +135,12 @@ export default function Work() {
   return (
     <section ref={rootRef} id="work" className="py-24 sm:py-32">
       <div className="container">
-        <p className="font-mono text-xs uppercase tracking-[0.25em] text-muted">
+        <p data-reveal className="font-mono text-xs uppercase tracking-[0.25em] text-muted">
           SELECTED BUILDS
         </p>
         <h2
-          className="font-display mt-4 font-bold leading-[1.1] tracking-tight"
+          data-reveal
+          className="font-display mt-4 font-bold leading-[1.1] tracking-tight text-ink"
           style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)" }}
         >
           Real products. Shipped.
@@ -129,12 +151,12 @@ export default function Work() {
             <article
               key={p.id}
               data-row
-              className={`grid items-center gap-8 md:grid-cols-2 md:gap-12 ${
+              className={`grid items-center gap-8 md:grid-cols-2 md:gap-12 text-ink ${
                 i % 2 === 1 ? "md:[&>*:first-child]:order-2" : ""
               }`}
             >
               {/* Visual frame: brand tile (or real image) + hover zoom + brackets */}
-              <div className="group relative aspect-[16/10] overflow-hidden rounded-[14px] border border-grid">
+              <div className="group relative aspect-[16/10] overflow-hidden rounded-[14px] border border-grid bg-surface">
                 <div data-parallax className="absolute inset-0 will-change-transform">
                   <div className="h-full w-full transition-transform duration-500 ease-out group-hover:scale-[1.03]">
                     {p.hasImage ? (
@@ -151,14 +173,14 @@ export default function Work() {
                   </div>
                 </div>
 
-                {/* Signal corner brackets draw in on hover. */}
+                {/* Signal corner brackets draw in on hover (BUG/M5 improvement) */}
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute left-3 top-3 h-5 w-5 border-l-2 border-t-2 border-signal opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                  className="pointer-events-none absolute left-5 top-5 h-5 w-5 border-l-2 border-t-2 border-signal opacity-0 transition-all duration-300 ease-out group-hover:left-3 group-hover:top-3 group-hover:opacity-100"
                 />
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-signal opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                  className="pointer-events-none absolute bottom-5 right-5 h-5 w-5 border-b-2 border-r-2 border-signal opacity-0 transition-all duration-300 ease-out group-hover:bottom-3 group-hover:right-3 group-hover:opacity-100"
                 />
               </div>
 
@@ -182,7 +204,7 @@ export default function Work() {
                     <li
                       key={t}
                       data-chip
-                      className="rounded-md bg-[color-mix(in_srgb,var(--color-ink)_5%,transparent)] px-2.5 py-1 font-mono text-[11px] text-ink"
+                      className="rounded-md bg-[color-mix(in_srgb,var(--color-ink)_5%,transparent)] px-2.5 py-1 font-mono text-[11px]"
                     >
                       {t}
                     </li>

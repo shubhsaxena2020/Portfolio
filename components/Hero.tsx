@@ -144,6 +144,61 @@ export default function Hero() {
     };
   }, []);
 
+  // Headline magnetic hover displacement (M2)
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const headline = root.querySelector<HTMLElement>("h1");
+    if (!headline) return;
+
+    const elements = Array.from(
+      headline.querySelectorAll<HTMLElement>(".hover-word, .hover-char")
+    );
+
+    const onPointerMove = (e: PointerEvent) => {
+      const mx = e.clientX;
+      const my = e.clientY;
+      const radius = 100; // reaction radius
+
+      elements.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = mx - cx;
+        const dy = my - cy;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < radius) {
+          const factor = (radius - dist) / radius; // 1 at center, 0 at boundary
+          const angle = Math.atan2(dy, dx);
+          // Push away up to 8px, scale up to 1.06
+          const pushX = -Math.cos(angle) * 8 * factor;
+          const pushY = -Math.sin(angle) * 8 * factor;
+          const scale = 1 + 0.06 * factor;
+          el.style.transform = `translate3d(${pushX}px, ${pushY}px, 0) scale(${scale})`;
+        } else {
+          el.style.transform = "";
+        }
+      });
+    };
+
+    const onPointerLeave = () => {
+      elements.forEach((el) => {
+        el.style.transform = "";
+      });
+    };
+
+    headline.addEventListener("pointermove", onPointerMove);
+    headline.addEventListener("pointerleave", onPointerLeave);
+
+    return () => {
+      headline.removeEventListener("pointermove", onPointerMove);
+      headline.removeEventListener("pointerleave", onPointerLeave);
+    };
+  }, []);
+
   return (
     <section
       ref={rootRef}
@@ -168,16 +223,32 @@ export default function Hero() {
           </span>
         </p>
 
-        {/* Headline */}
+        {/* Headline with spans for word/letter animation */}
         <h1
-          className="font-display mt-5 font-bold leading-[1.04] tracking-tight"
+          className="font-display mt-5 font-bold leading-[1.04] tracking-tight text-ink"
           style={{ fontSize: "clamp(2.6rem, 6vw, 5.5rem)" }}
         >
           <span data-line className="block">
-            I turn ambitious ideas into
+            {"I turn ambitious ideas into".split(" ").map((word, idx) => (
+              <span
+                key={idx}
+                className="hover-word inline-block mr-[0.28em] last:mr-0 transition-transform duration-200 ease-out will-change-transform"
+              >
+                {word}
+              </span>
+            ))}
           </span>
           <span data-line className="block">
-            <span className="text-signal">real-world products.</span>
+            {"real-world products.".split("").map((char, idx) => (
+              <span
+                key={idx}
+                className={`hover-char inline-block text-signal transition-transform duration-200 ease-out will-change-transform ${
+                  char === " " ? "w-[0.28em]" : ""
+                }`}
+              >
+                {char === " " ? "\u00A0" : char}
+              </span>
+            ))}
           </span>
         </h1>
 
