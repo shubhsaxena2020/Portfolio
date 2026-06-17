@@ -143,8 +143,15 @@ export default function GridBg({ className = "" }: { className?: string }) {
 
     let targetScrollProgress = 0;
     let currentScrollProgress = 0;
+    let lastScrollY = typeof window !== "undefined" ? window.scrollY : 0;
+    let scrollSpeed = 0;
+    let currentScrollSpeed = 0;
 
     const handleScroll = () => {
+      const currentScroll = window.scrollY;
+      scrollSpeed = Math.abs(currentScroll - lastScrollY);
+      lastScrollY = currentScroll;
+
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
       if (docHeight > 0) {
         targetScrollProgress = window.scrollY / docHeight;
@@ -166,9 +173,14 @@ export default function GridBg({ className = "" }: { className?: string }) {
       currentScrollProgress += (targetScrollProgress - currentScrollProgress) * 0.08;
       mouse.x += (mouse.targetX - mouse.x) * 0.05;
       mouse.y += (mouse.targetY - mouse.y) * 0.05;
+      currentScrollSpeed += (scrollSpeed - currentScrollSpeed) * 0.15;
+      scrollSpeed *= 0.85; // decay rapidly
 
       const time = timestamp * 0.0004;
-      const yaw = time * 0.2 + mouse.x * 0.35;
+      
+      // Accelerate camera rotation yaw slightly during scroll movement
+      const yawSpeed = 0.2 + Math.min(1.0, currentScrollSpeed * 0.04);
+      const yaw = time * yawSpeed + mouse.x * 0.35;
       const pitch = 0.25 + mouse.y * 0.2;
 
       const cosY = Math.cos(yaw);
@@ -203,12 +215,20 @@ export default function GridBg({ className = "" }: { className?: string }) {
 
       const smoothP = localP * localP * (3 - 2 * localP);
 
+      // Zoom out the focal length dynamically when scrolling fast (creates inertia zoom out)
+      const dynamicFocalLength = FOCAL_LENGTH - Math.min(100, currentScrollSpeed * 1.2);
+
       for (let i = 0; i < N; i++) {
         const p1 = shape1[i];
         const p2 = shape2[i];
-        const x3d = p1.x * (1 - smoothP) + p2.x * smoothP;
-        const y3d = p1.y * (1 - smoothP) + p2.y * smoothP;
-        const z3d = p1.z * (1 - smoothP) + p2.z * smoothP;
+        let x3d = p1.x * (1 - smoothP) + p2.x * smoothP;
+        let y3d = p1.y * (1 - smoothP) + p2.y * smoothP;
+        let z3d = p1.z * (1 - smoothP) + p2.z * smoothP;
+
+        // 1. Add undulating waves (rippling swells) to coordinates over time
+        const distFromCenter = Math.hypot(x3d, z3d);
+        const wave = Math.sin(time * 3.5 - distFromCenter * 0.01) * 16 * (1 + smoothP * 0.4);
+        y3d += wave;
 
         const rx = x3d * cosY - z3d * sinY;
         const rz1 = x3d * sinY + z3d * cosY;
@@ -219,9 +239,25 @@ export default function GridBg({ className = "" }: { className?: string }) {
         const finalZ = rz2 + 450;
 
         if (finalZ > 10) {
-          const scale = FOCAL_LENGTH / finalZ;
-          const sx = centerX + rx * scale;
-          const sy = centerY - ry * scale;
+          const scale = dynamicFocalLength / finalZ;
+          let sx = centerX + rx * scale;
+          let sy = centerY - ry * scale;
+
+          // 2. Localized interactive cursor deformation (rippling the mesh)
+          // Map mouse coordinates (-0.5 to 0.5) back to pixel dimensions
+          const mousePixelX = (mouse.x + 0.5) * width;
+          const mousePixelY = (mouse.y + 0.5) * height;
+          const dx = sx - mousePixelX;
+          const dy = sy - mousePixelY;
+          const distToMouse = Math.hypot(dx, dy);
+
+          if (distToMouse < 140) {
+            const force = (1.0 - distToMouse / 140) * 20;
+            const angle = Math.atan2(dy, dx);
+            sx += Math.cos(angle) * force;
+            sy += Math.sin(angle) * force;
+          }
+
           const opacity = Math.min(1.0, Math.max(0.0, 1.0 - finalZ / 800)) * 0.5;
 
           projected.push({
@@ -343,11 +379,23 @@ export default function GridBg({ className = "" }: { className?: string }) {
         // Twinkling effect based on index
         const twinkle = 0.6 + 0.4 * Math.sin(time * 3 + i * 0.05);
 
-        ctx.beginPath();
+        // Calculate vertical stretch based on scroll velocity
+        const stretch = currentScrollSpeed * 0.45;
         const size = (i < 200 && progress < 0.25) ? 1.6 : 0.85;
-        ctx.arc(p.x, p.y, size * (isSlate ? 0.9 : 1.1), 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${color}, ${p.opacity * twinkle})`;
-        ctx.fill();
+
+        if (stretch > 1.2) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y - stretch * 0.5);
+          ctx.lineTo(p.x, p.y + stretch * 0.5);
+          ctx.strokeStyle = `rgba(${color}, ${p.opacity * twinkle * 0.85})`;
+          ctx.lineWidth = size * (isSlate ? 0.9 : 1.1);
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, size * (isSlate ? 0.9 : 1.1), 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${color}, ${p.opacity * twinkle})`;
+          ctx.fill();
+        }
       }
 
       if (motionEnabled) {
