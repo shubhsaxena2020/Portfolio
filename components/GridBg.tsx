@@ -770,7 +770,7 @@ export default function GridBg({ className = "" }: { className?: string }) {
     <div
       ref={containerRef}
       aria-hidden="true"
-      className={`pointer-events-none absolute inset-0 -z-10 h-full w-full overflow-hidden ${className}`}
+      className={`pointer-events-none absolute inset-0 -z-10 h-full w-full max-w-[100vw] overflow-hidden ${className}`}
     >
       <canvas ref={canvasRef} className="block h-full w-full opacity-[0.85]" />
     </div>

@@ -54,6 +54,13 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Eliminate accidental horizontal scroll on mobile. */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 /* The custom cursor replaces the system cursor on fine-pointer devices. */
 @media (pointer: fine) {
   body[data-cursor="on"],
