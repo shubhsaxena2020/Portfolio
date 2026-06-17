@@ -2,6 +2,28 @@
 
 import { useEffect, useRef, useState } from "react";
 
+interface Star {
+  x: number; // galactic x
+  y: number; // galactic y (disc height)
+  z: number; // galactic z
+  radius: number; // distance from galactic center
+  angle: number; // current orbital angle
+  orbitalSpeed: number; // speed of rotation (differential)
+  color: string; // rgb color string
+  size: number;
+  opacity: number;
+  phase: number; // twinkle phase
+}
+
+interface GasCloud {
+  x: number;
+  y: number;
+  z: number;
+  size: number;
+  color: string;
+  opacity: number;
+}
+
 export default function GridBg({ className = "" }: { className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -30,102 +52,118 @@ export default function GridBg({ className = "" }: { className?: string }) {
     
     window.addEventListener("resize", handleResize);
 
-    const N = 1500;
-    const shapeGalaxy: { x: number; y: number; z: number }[] = [];
-    const shapeCluster: { x: number; y: number; z: number }[] = [];
-    const shapeGlobe: { x: number; y: number; z: number }[] = [];
-    const shapeGrid: { x: number; y: number; z: number }[] = [];
-    const shapeNebula: { x: number; y: number; z: number }[] = [];
+    // Initialize 3D Spiral Galaxy
+    const N = 2400; // total stars
+    const stars: Star[] = [];
+    const gasClouds: GasCloud[] = [];
 
-    // 1. Pre-calculate Spiral Galaxy (Double Arm with dense core)
+    // 1. Generate core and arm stars
     for (let i = 0; i < N; i++) {
-      if (i < 200) {
-        // Core sphere
-        const r = Math.pow(Math.random(), 1.5) * 40;
+      const isCore = i < 600;
+      
+      let r = 0;
+      let theta = 0;
+      let x = 0;
+      let y = 0;
+      let z = 0;
+      let color = "248, 249, 250"; // default white
+      let size = 0.6 + Math.random() * 0.9;
+      let opacity = 0.35 + Math.random() * 0.55;
+
+      if (isCore) {
+        // High density spherical core
+        r = Math.pow(Math.random(), 1.5) * 45;
         const lat = Math.random() * Math.PI;
         const lon = Math.random() * Math.PI * 2;
-        shapeGalaxy.push({
-          x: r * Math.sin(lat) * Math.cos(lon),
-          y: r * Math.sin(lat) * Math.sin(lon),
-          z: r * Math.cos(lat),
-        });
+        x = r * Math.sin(lat) * Math.cos(lon);
+        y = r * Math.sin(lat) * Math.sin(lon) * 0.7; // slightly flattened
+        z = r * Math.cos(lat);
+        theta = Math.atan2(z, x);
+
+        // Core colors: warm golds and bright white
+        const colorRand = Math.random();
+        if (colorRand < 0.6) {
+          color = "255, 235, 180"; // soft gold
+        } else if (colorRand < 0.9) {
+          color = "248, 249, 250"; // white
+        } else {
+          color = "212, 175, 55"; // deep gold
+        }
+        size = 0.8 + Math.random() * 1.1;
       } else {
-        const arm = i % 2;
-        const theta = (i / N) * Math.PI * 8;
-        const r = Math.pow(Math.random(), 1.5) * 260 + 5;
-        shapeGalaxy.push({
-          x: Math.cos(theta + arm * Math.PI) * r + (Math.random() - 0.5) * 15,
-          y: (Math.random() - 0.5) * (180 / (r + 10)) * 10,
-          z: Math.sin(theta + arm * Math.PI) * r + (Math.random() - 0.5) * 15,
+        // Two-armed spiral galaxy
+        const arm = i % 2 === 0 ? 0 : Math.PI;
+        // Distribute radius out to 360px
+        r = Math.pow(Math.random(), 1.3) * 315 + 40;
+        
+        // Logarithmic spiral math: angle = r * constant + arm offset
+        theta = r * 0.0125 + arm;
+        
+        // Add random scatter (dispersion) to give spiral arms thickness
+        const scatterRadius = (350 - r) * 0.09 + 8;
+        const dispX = (Math.random() - 0.5) * scatterRadius * 1.5;
+        const dispY = (Math.random() - 0.5) * 10; // disc height thickness
+        const dispZ = (Math.random() - 0.5) * scatterRadius * 1.5;
+
+        x = Math.cos(theta) * r + dispX;
+        y = dispY;
+        z = Math.sin(theta) * r + dispZ;
+
+        // Recalculate true polar coordinates for rotation
+        r = Math.hypot(x, z);
+        theta = Math.atan2(z, x);
+
+        // Arm colors: mix of luxury gold and slate indigo
+        const colorRand = Math.random();
+        if (colorRand < 0.45) {
+          color = "197, 168, 92"; // luxury gold
+        } else if (colorRand < 0.85) {
+          color = "107, 131, 149"; // slate blue-grey
+        } else {
+          color = "126, 155, 180"; // cosmic blue
+        }
+      }
+
+      // Keplerian-like differential rotation: inner core speeds rotate faster
+      // Speed = Constant / sqrt(radius)
+      const orbitalSpeed = 0.00015 + 0.0035 / (r + 15);
+
+      stars.push({
+        x,
+        y,
+        z,
+        radius: r,
+        angle: theta,
+        orbitalSpeed,
+        color,
+        size,
+        opacity,
+        phase: Math.random() * Math.PI * 2,
+      });
+    }
+
+    // 2. Generate Volumetric Gas Clouds (for dust lanes & glowing volumetric spaces)
+    // Add one main core gas cloud
+    gasClouds.push({ x: 0, y: 0, z: 0, size: 130, color: "197, 168, 92", opacity: 0.09 });
+    
+    // Add clouds along the spiral arms
+    for (let armIdx = 0; armIdx < 2; armIdx++) {
+      const arm = armIdx * Math.PI;
+      for (let j = 1; j <= 4; j++) {
+        const r = j * 70 + 20;
+        const theta = r * 0.0125 + arm;
+        gasClouds.push({
+          x: Math.cos(theta) * r,
+          y: (Math.random() - 0.5) * 6,
+          z: Math.sin(theta) * r,
+          size: 70 + Math.random() * 50,
+          color: j % 2 === 0 ? "107, 131, 149" : "197, 168, 92", // alternate slate and gold
+          opacity: 0.04 + Math.random() * 0.03,
         });
       }
     }
 
-    // 2. Pre-calculate Star Cluster (Constellation clump)
-    for (let i = 0; i < N; i++) {
-      const rClust = Math.pow(Math.random(), 0.75) * 210;
-      const lat = Math.random() * Math.PI;
-      const lon = Math.random() * Math.PI * 2;
-      shapeCluster.push({
-        x: rClust * Math.sin(lat) * Math.cos(lon),
-        y: rClust * Math.sin(lat) * Math.sin(lon),
-        z: rClust * Math.cos(lat),
-      });
-    }
-
-    // 3. Pre-calculate Globe (Longitude/Latitude lattice sphere)
-    const lonCount = 50;
-    const latCount = 30;
-    for (let i = 0; i < N; i++) {
-      const rGlobe = 175;
-      const latIdx = Math.floor(i / lonCount) % latCount;
-      const lonIdx = i % lonCount;
-      const phiGlobe = (latIdx / latCount) * Math.PI;
-      const thetaGlobe = (lonIdx / lonCount) * Math.PI * 2;
-      shapeGlobe.push({
-        x: rGlobe * Math.sin(phiGlobe) * Math.cos(thetaGlobe),
-        y: rGlobe * Math.sin(phiGlobe) * Math.sin(thetaGlobe),
-        z: rGlobe * Math.cos(phiGlobe),
-      });
-    }
-
-    // 4. Pre-calculate Curved Horizon Mesh
-    const cols = 50;
-    for (let i = 0; i < N; i++) {
-      const colIdx = i % cols;
-      const rowIdx = Math.floor(i / cols);
-      const gridX = ((colIdx / cols) - 0.5) * 720;
-      const gridZ = (rowIdx / 30) * 500 - 250;
-      shapeGrid.push({
-        x: gridX,
-        y: Math.sin(gridX * 0.008) * 35 + Math.cos(gridZ * 0.008) * 40 - 70,
-        z: gridZ,
-      });
-    }
-
-    // 5. Pre-calculate Nebula Drift Field
-    for (let i = 0; i < N; i++) {
-      shapeNebula.push({
-        x: (Math.random() - 0.5) * 850,
-        y: (Math.random() - 0.5) * 650,
-        z: (Math.random() - 0.5) * 850,
-      });
-    }
-
-    // Connect random stars for constellation lines
-    const constellationLines: [number, number][] = [];
-    for (let i = 0; i < 400; i++) {
-      const p1 = Math.floor(Math.random() * N);
-      const p2 = Math.floor(Math.random() * N);
-      const dist = Math.hypot(
-        shapeCluster[p1].x - shapeCluster[p2].x,
-        shapeCluster[p1].y - shapeCluster[p2].y
-      );
-      if (dist < 75) {
-        constellationLines.push([p1, p2]);
-      }
-    }
-
+    // Interactive mouse tracking
     const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -141,6 +179,7 @@ export default function GridBg({ className = "" }: { className?: string }) {
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
     document.addEventListener("mouseleave", handleMouseLeave);
 
+    // Scroll mapping
     let targetScrollProgress = 0;
     let currentScrollProgress = 0;
     let lastScrollY = typeof window !== "undefined" ? window.scrollY : 0;
@@ -158,243 +197,182 @@ export default function GridBg({ className = "" }: { className?: string }) {
       }
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
-    // Run once initially to capture initial position
     handleScroll();
 
     let rafId = 0;
-    const FOCAL_LENGTH = 360;
+    const FOCAL_LENGTH = 340;
 
     const render = (timestamp: number) => {
       if (!ctx || !canvas) return;
 
-      ctx.clearRect(0, 0, width, height);
+      // Clear with very slight transparency to leave a minute trace trail on motion
+      ctx.fillStyle = "rgba(2, 2, 4, 1)";
+      ctx.fillRect(0, 0, width, height);
 
-      // Liquid damping for scroll and camera inertia
-      currentScrollProgress += (targetScrollProgress - currentScrollProgress) * 0.08;
+      // Damp scroll and mouse values
+      currentScrollProgress += (targetScrollProgress - currentScrollProgress) * 0.06;
       mouse.x += (mouse.targetX - mouse.x) * 0.05;
       mouse.y += (mouse.targetY - mouse.y) * 0.05;
       currentScrollSpeed += (scrollSpeed - currentScrollSpeed) * 0.15;
-      scrollSpeed *= 0.85; // decay rapidly
+      scrollSpeed *= 0.85;
 
       const time = timestamp * 0.0004;
-      
-      // Accelerate camera rotation yaw slightly during scroll movement
-      const yawSpeed = 0.2 + Math.min(1.0, currentScrollSpeed * 0.04);
-      const yaw = time * yawSpeed + mouse.x * 0.35;
-      const pitch = 0.25 + mouse.y * 0.2;
+      const progress = currentScrollProgress;
+
+      // 1. Camera Flight Trajectory based on Scroll
+      // - Hero (progress 0): full view, galaxy tilted
+      // - About (progress 0.25): zoom in closer to arm
+      // - Services (progress 0.5): camera rolls and dives
+      // - Work (progress 0.75): zooms deeply into the glowing core
+      // - Contact (progress 1.0): pulls back to show total galaxy
+      let camDistance = 440;
+      let camYOffset = 0;
+      let basePitch = 0.75; // tilted galaxy plane (rad)
+      let baseRoll = 0;
+
+      if (progress < 0.25) {
+        const t = progress / 0.25;
+        camDistance = 440 - t * 100; // zoom in
+        camYOffset = t * -30;
+        basePitch = 0.75 - t * 0.2; // tilt down
+      } else if (progress < 0.5) {
+        const t = (progress - 0.25) / 0.25;
+        camDistance = 340 - t * 50;
+        camYOffset = -30 + t * -40;
+        basePitch = 0.55 - t * 0.15;
+        baseRoll = t * 0.3; // camera roll angle
+      } else if (progress < 0.75) {
+        const t = (progress - 0.5) / 0.25;
+        camDistance = 290 - t * 110; // zoom deeply into core
+        camYOffset = -70 + t * 90;
+        basePitch = 0.4 - t * 0.3; // looking head-on into core disc
+        baseRoll = 0.3 - t * 0.3;
+      } else {
+        const t = (progress - 0.75) / 0.25;
+        camDistance = 180 + t * 290; // pull back far
+        camYOffset = 20 - t * 20;
+        basePitch = 0.1 + t * 0.75; // tilt back up to view full disc
+      }
+
+      // Add mouse sway to rotation angles (3D parallax)
+      const yaw = time * 0.15 + mouse.x * 0.45;
+      const pitch = basePitch + mouse.y * 0.25;
+      const roll = baseRoll;
 
       const cosY = Math.cos(yaw);
       const sinY = Math.sin(yaw);
       const cosP = Math.cos(pitch);
       const sinP = Math.sin(pitch);
+      const cosR = Math.cos(roll);
+      const sinR = Math.sin(roll);
 
       const centerX = width / 2;
-      const centerY = height * 0.48;
+      const centerY = height * 0.5;
 
-      const projected: { x: number; y: number; visible: boolean; opacity: number }[] = [];
-      const progress = currentScrollProgress;
+      // Dynamic zoom-out focal length on rapid scroll
+      const dynamicFocalLength = FOCAL_LENGTH - Math.min(80, currentScrollSpeed * 0.95);
+      const stretch = currentScrollSpeed * 0.4; // stretch factor for trails
 
-      let shape1, shape2, localP;
-      if (progress < 0.25) {
-        shape1 = shapeGalaxy;
-        shape2 = shapeCluster;
-        localP = progress / 0.25;
-      } else if (progress < 0.5) {
-        shape1 = shapeCluster;
-        shape2 = shapeGlobe;
-        localP = (progress - 0.25) / 0.25;
-      } else if (progress < 0.75) {
-        shape1 = shapeGlobe;
-        shape2 = shapeGrid;
-        localP = (progress - 0.5) / 0.25;
-      } else {
-        shape1 = shapeGrid;
-        shape2 = shapeNebula;
-        localP = Math.min(1.0, (progress - 0.75) / 0.25);
-      }
+      // 2. Volumetric Gas rendering (rendered behind stars)
+      gasClouds.forEach((cloud) => {
+        // Differential rotation of gas cloud
+        const cloudDist = Math.hypot(cloud.x, cloud.z);
+        const cloudOmega = 0.00015 + 0.0035 / (cloudDist + 15);
+        const currentAngle = Math.atan2(cloud.z, cloud.x) + timestamp * cloudOmega;
+        
+        const cx3d = Math.cos(currentAngle) * cloudDist;
+        const cy3d = cloud.y;
+        const cz3d = Math.sin(currentAngle) * cloudDist;
 
-      const smoothP = localP * localP * (3 - 2 * localP);
+        // Apply 3D camera rotation
+        const rx = cx3d * cosY - cz3d * sinY;
+        const rz1 = cx3d * sinY + cz3d * cosY;
+        const ry = cy3d * cosP - rz1 * sinP + camYOffset;
+        const rz2 = cy3d * sinP + rz1 * cosP;
 
-      // Zoom out the focal length dynamically when scrolling fast (creates inertia zoom out)
-      const dynamicFocalLength = FOCAL_LENGTH - Math.min(100, currentScrollSpeed * 1.2);
+        const finalZ = rz2 + camDistance;
 
+        if (finalZ > 10) {
+          const scale = dynamicFocalLength / finalZ;
+          const sx = centerX + rx * scale;
+          const sy = centerY - ry * scale;
+          const cloudSize = cloud.size * scale;
+
+          if (sx + cloudSize > 0 && sx - cloudSize < width && sy + cloudSize > 0 && sy - cloudSize < height) {
+            const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, cloudSize);
+            grad.addColorStop(0, `rgba(${cloud.color}, ${cloud.opacity * (1.0 - finalZ / 1000)})`);
+            grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+            
+            ctx.beginPath();
+            ctx.arc(sx, sy, cloudSize, 0, Math.PI * 2);
+            ctx.fillStyle = grad;
+            ctx.fill();
+          }
+        }
+      });
+
+      // 3. Draw Stars
       for (let i = 0; i < N; i++) {
-        const p1 = shape1[i];
-        const p2 = shape2[i];
-        let x3d = p1.x * (1 - smoothP) + p2.x * smoothP;
-        let y3d = p1.y * (1 - smoothP) + p2.y * smoothP;
-        let z3d = p1.z * (1 - smoothP) + p2.z * smoothP;
+        const s = stars[i];
 
-        // 1. Add undulating waves (rippling swells) to coordinates over time
-        const distFromCenter = Math.hypot(x3d, z3d);
-        const wave = Math.sin(time * 3.5 - distFromCenter * 0.01) * 16 * (1 + smoothP * 0.4);
-        y3d += wave;
+        // Differential Orbit rotation tick
+        s.angle += s.orbitalSpeed * (1.0 + currentScrollSpeed * 0.015);
+        s.x = Math.cos(s.angle) * s.radius;
+        s.z = Math.sin(s.angle) * s.radius;
 
-        const rx = x3d * cosY - z3d * sinY;
-        const rz1 = x3d * sinY + z3d * cosY;
+        // Rotate point in 3D galactic plane
+        const rx = s.x * cosY - s.z * sinY;
+        const rz1 = s.x * sinY + s.z * cosY;
+        const ry = s.y * cosP - rz1 * sinP + camYOffset;
+        const rz2 = s.y * sinP + rz1 * cosP;
 
-        const ry = y3d * cosP - rz1 * sinP;
-        const rz2 = y3d * sinP + rz1 * cosP;
-
-        const finalZ = rz2 + 450;
+        const finalZ = rz2 + camDistance;
 
         if (finalZ > 10) {
           const scale = dynamicFocalLength / finalZ;
           let sx = centerX + rx * scale;
           let sy = centerY - ry * scale;
 
-          // 2. Localized interactive cursor deformation (rippling the mesh)
-          // Map mouse coordinates (-0.5 to 0.5) back to pixel dimensions
+          // Localized mouse sway distortion
           const mousePixelX = (mouse.x + 0.5) * width;
           const mousePixelY = (mouse.y + 0.5) * height;
           const dx = sx - mousePixelX;
           const dy = sy - mousePixelY;
           const distToMouse = Math.hypot(dx, dy);
 
-          if (distToMouse < 140) {
-            const force = (1.0 - distToMouse / 140) * 20;
+          if (distToMouse < 130) {
+            const force = (1.0 - distToMouse / 130) * 16;
             const angle = Math.atan2(dy, dx);
             sx += Math.cos(angle) * force;
             sy += Math.sin(angle) * force;
           }
 
-          const opacity = Math.min(1.0, Math.max(0.0, 1.0 - finalZ / 800)) * 0.5;
+          // Screen visibility bounds check
+          if (sx >= -10 && sx <= width + 10 && sy >= -10 && sy <= height + 10) {
+            const depthOpacity = Math.min(1.0, Math.max(0.0, 1.0 - finalZ / 950));
+            const twinkle = 0.55 + 0.45 * Math.sin(time * 3 + s.phase);
 
-          projected.push({
-            x: sx,
-            y: sy,
-            visible: sx >= -50 && sx <= width + 50 && sy >= -50 && sy <= height + 50,
-            opacity,
-          });
-        } else {
-          projected.push({ x: -9999, y: -9999, visible: false, opacity: 0 });
-        }
-      }
+            const finalSize = s.size * scale * 0.35;
 
-      ctx.lineWidth = 0.55;
+            if (stretch > 1.2) {
+              // Streak stars along motion vector when warp speed is active
+              const angleOfTravel = s.angle + Math.PI / 2; // tangent to circle orbit
+              const vx = Math.cos(angleOfTravel) * stretch * scale * 0.01;
+              const vy = Math.sin(angleOfTravel) * stretch * scale * 0.01;
 
-      // Draw Globe Connections
-      if (progress >= 0.22 && progress < 0.78) {
-        let globeWeight = 0;
-        if (progress >= 0.22 && progress < 0.5) {
-          globeWeight = smoothP;
-        } else {
-          globeWeight = 1.0 - smoothP;
-        }
-
-        ctx.strokeStyle = `rgba(197, 168, 92, ${globeWeight * 0.15})`; // Gold
-
-        for (let i = 0; i < N; i++) {
-          const p1 = projected[i];
-          if (!p1 || !p1.visible) continue;
-
-          const nextLon = (i % lonCount === lonCount - 1) ? i - lonCount + 1 : i + 1;
-          const p2 = projected[nextLon];
-          if (p2 && p2.visible) {
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-          }
-
-          const nextLat = i + lonCount;
-          if (nextLat < N) {
-            const p3 = projected[nextLat];
-            if (p3 && p3.visible) {
               ctx.beginPath();
-              ctx.moveTo(p1.x, p1.y);
-              ctx.lineTo(p3.x, p3.y);
+              ctx.moveTo(sx - vx, sy - vy);
+              ctx.lineTo(sx + vx, sy + vy);
+              ctx.strokeStyle = `rgba(${s.color}, ${s.opacity * twinkle * depthOpacity * 0.8})`;
+              ctx.lineWidth = finalSize;
               ctx.stroke();
+            } else {
+              ctx.beginPath();
+              ctx.arc(sx, sy, finalSize, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(${s.color}, ${s.opacity * twinkle * depthOpacity})`;
+              ctx.fill();
             }
           }
-        }
-      }
-
-      // Draw Constellation Connections
-      if (progress < 0.48) {
-        let clusterWeight = 0;
-        if (progress < 0.25) {
-          clusterWeight = smoothP;
-        } else {
-          clusterWeight = 1.0 - smoothP;
-        }
-
-        ctx.strokeStyle = `rgba(197, 168, 92, ${clusterWeight * 0.12})`; // Gold
-        for (let i = 0; i < constellationLines.length; i++) {
-          const [idx1, idx2] = constellationLines[i];
-          const p1 = projected[idx1];
-          const p2 = projected[idx2];
-          if (p1 && p1.visible && p2 && p2.visible) {
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-          }
-        }
-      }
-
-      // Draw Horizon Grid Connections
-      if (progress >= 0.48) {
-        let gridWeight = 0;
-        if (progress >= 0.48 && progress < 0.75) {
-          gridWeight = smoothP;
-        } else {
-          gridWeight = 1.0 - smoothP;
-        }
-
-        ctx.strokeStyle = `rgba(107, 131, 149, ${gridWeight * 0.15})`; // Slate-blue
-        for (let i = 0; i < N; i++) {
-          const col = i % cols;
-          const p1 = projected[i];
-          if (!p1 || !p1.visible) continue;
-
-          if (col < cols - 1) {
-            const p2 = projected[i + 1];
-            if (p2 && p2.visible) {
-              ctx.beginPath();
-              ctx.moveTo(p1.x, p1.y);
-              ctx.lineTo(p2.x, p2.y);
-              ctx.stroke();
-            }
-          }
-
-          const p3 = projected[i + cols];
-          if (p3 && p3.visible && i + cols < N) {
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p3.x, p3.y);
-            ctx.stroke();
-          }
-        }
-      }
-
-      // Draw Stars (Particles)
-      for (let i = 0; i < N; i++) {
-        const p = projected[i];
-        if (!p || !p.visible) continue;
-
-        const isSlate = i % 3 === 0;
-        const color = isSlate ? "107, 131, 149" : "197, 168, 92"; // Slate-blue and Gold
-        
-        // Twinkling effect based on index
-        const twinkle = 0.6 + 0.4 * Math.sin(time * 3 + i * 0.05);
-
-        // Calculate vertical stretch based on scroll velocity
-        const stretch = currentScrollSpeed * 0.45;
-        const size = (i < 200 && progress < 0.25) ? 1.6 : 0.85;
-
-        if (stretch > 1.2) {
-          ctx.beginPath();
-          ctx.moveTo(p.x, p.y - stretch * 0.5);
-          ctx.lineTo(p.x, p.y + stretch * 0.5);
-          ctx.strokeStyle = `rgba(${color}, ${p.opacity * twinkle * 0.85})`;
-          ctx.lineWidth = size * (isSlate ? 0.9 : 1.1);
-          ctx.stroke();
-        } else {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, size * (isSlate ? 0.9 : 1.1), 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${color}, ${p.opacity * twinkle})`;
-          ctx.fill();
         }
       }
 
@@ -424,7 +402,7 @@ export default function GridBg({ className = "" }: { className?: string }) {
       aria-hidden="true"
       className={`pointer-events-none absolute inset-0 -z-10 h-full w-full overflow-hidden ${className}`}
     >
-      <canvas ref={canvasRef} className="block h-full w-full opacity-70" />
+      <canvas ref={canvasRef} className="block h-full w-full opacity-[0.82]" />
     </div>
   );
 }
