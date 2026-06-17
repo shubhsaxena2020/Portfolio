@@ -3,6 +3,7 @@ import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Loader from "@/components/Loader";
 import Cursor from "@/components/Cursor";
+import { Analytics } from '@vercel/analytics/react'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -70,6 +71,7 @@ export default function RootLayout({
         <Loader />
         <Cursor />
         {children}
+        <Analytics />
       </body>
     </html>
   );
