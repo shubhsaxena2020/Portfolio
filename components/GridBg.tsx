@@ -100,23 +100,38 @@ export default function GridBg({ className = "" }: { className?: string }) {
       });
     }
 
-    // 2. Sun Plasma Flare Particles
-    const flareCount = 60;
+    // 2. Sun Plasma Flare Particles (increased count and dimensions for larger Sun)
+    const flareCount = 90;
     const flares: FlareParticle[] = [];
     for (let i = 0; i < flareCount; i++) {
-      const maxLife = 50 + Math.random() * 60;
+      const maxLife = 60 + Math.random() * 70;
       flares.push({
         angle: Math.random() * Math.PI * 2,
-        radius: 40 + Math.random() * 10,
+        radius: 68 + Math.random() * 12, // starts at outer boundary of larger Sun
         speed: 0.35 + Math.random() * 0.45,
-        size: 6 + Math.random() * 14,
+        size: 8 + Math.random() * 18,
         opacity: 0,
-        maxOpacity: 0.18 + Math.random() * 0.14,
+        maxOpacity: 0.16 + Math.random() * 0.14,
         life: Math.random() * maxLife,
         maxLife,
-        color: Math.random() < 0.6 ? "197, 168, 92" : "248, 249, 250", // gold & starlight white
+        color: Math.random() < 0.65 ? "197, 168, 92" : "248, 249, 250", // gold & starlight white
       });
     }
+
+    // Solar Prominence Arcs (bezier loops erupting and contracting)
+    const prominences = [
+      { startAngle: 0.3, endAngle: 0.85, maxH: 26, speed: 1.4, phase: 0 },
+      { startAngle: 2.0, endAngle: 2.6, maxH: 22, speed: 1.8, phase: Math.PI / 3 },
+      { startAngle: 3.7, endAngle: 4.3, maxH: 30, speed: 1.1, phase: Math.PI / 1.5 },
+      { startAngle: 4.9, endAngle: 5.5, maxH: 24, speed: 1.5, phase: Math.PI },
+    ];
+
+    // Sunspots on rotating core surface
+    const sunspots = [
+      { lat: 1.2, phase: 0.5, size: 3.0 },
+      { lat: 1.8, phase: 3.1, size: 4.2 },
+      { lat: 1.5, phase: 1.8, size: 2.5 },
+    ];
 
     // 3. Orbits & Orbiting Planets
     const planets: Planet[] = [
@@ -335,38 +350,183 @@ export default function GridBg({ className = "" }: { className?: string }) {
       // 5. Gather renderable items for depth-buffer sorting
       const renderQueue: RenderItem[] = [];
 
-      // A. Add Sun (Core radius: 45px in world coordinates)
+      // A. Add Sun (Massive, highly-detailed core, rays, spots, and prominence loops)
       const sunProj = project3D(0, 0, 0);
       if (sunProj.visible) {
+        // A1. Draw Orbiting Sunspots on the Sun's rotating surface
+        // (Pre-calculated Z sorting for spots so they sit right on the surface)
+        const spotsFn = () => {
+          sunspots.forEach((spot) => {
+            // Sun spot coordinate relative to solar sphere
+            const spotAngle = time * 0.15 + spot.phase;
+            const sx = Math.cos(spotAngle) * Math.sin(spot.lat) * 78;
+            const sy = Math.cos(spot.lat) * 78;
+            const sz = Math.sin(spotAngle) * Math.sin(spot.lat) * 78;
+
+            // Project spot
+            const spotProj = project3D(sx, sy, sz);
+            
+            // Render only if spot is on the front side of the Sun sphere
+            if (spotProj.visible && spotProj.z < sunProj.z) {
+              const spotSize = spot.size * spotProj.scale;
+              ctx.beginPath();
+              // Flatten ellipse representing sphere curvature
+              ctx.ellipse(spotProj.x, spotProj.y, spotSize, spotSize * 0.6, spotAngle, 0, Math.PI * 2);
+              
+              // Dark magnetic core with glowing penumbra border
+              ctx.fillStyle = "rgba(26, 15, 5, 0.9)";
+              ctx.strokeStyle = "rgba(197, 168, 92, 0.4)";
+              ctx.lineWidth = 1;
+              ctx.fill();
+              ctx.stroke();
+            }
+          });
+        };
+
+        // A2. Draw Prominence Loops (volumetric quadratic bezier arcs of solar plasma)
+        const prominenceFn = () => {
+          prominences.forEach((p) => {
+            // Erupting peak height wave
+            const currentH = p.maxH * (0.35 + 0.65 * Math.sin(time * p.speed + p.phase));
+            const midAngle = (p.startAngle + p.endAngle) / 2;
+
+            // 3D coordinates
+            const x1 = Math.cos(p.startAngle) * 78;
+            const z1 = Math.sin(p.startAngle) * 78;
+            const y1 = Math.sin(time * 2 + p.phase) * 4;
+
+            const x2 = Math.cos(p.endAngle) * 78;
+            const z2 = Math.sin(p.endAngle) * 78;
+            const y2 = Math.sin(time * 2 + p.phase + 2) * 4;
+
+            const xc = Math.cos(midAngle) * (78 + currentH);
+            const zc = Math.sin(midAngle) * (78 + currentH);
+            const yc = Math.cos(time * 3 + p.phase) * 8; // writhing loop in 3D
+
+            const pStart = project3D(x1, y1, z1);
+            const pEnd = project3D(x2, y2, z2);
+            const pCtrl = project3D(xc, yc, zc);
+
+            if (pStart.visible && pEnd.visible && pCtrl.visible) {
+              ctx.save();
+              ctx.shadowBlur = 12;
+              ctx.shadowColor = "rgba(197, 168, 92, 0.8)";
+              
+              ctx.beginPath();
+              ctx.moveTo(pStart.x, pStart.y);
+              ctx.quadraticCurveTo(pCtrl.x, pCtrl.y, pEnd.x, pEnd.y);
+              
+              const grad = ctx.createLinearGradient(pStart.x, pStart.y, pEnd.x, pEnd.y);
+              grad.addColorStop(0, "rgba(197, 168, 92, 0.7)");
+              grad.addColorStop(0.5, "rgba(255, 235, 180, 0.9)");
+              grad.addColorStop(1, "rgba(197, 168, 92, 0.7)");
+              
+              ctx.strokeStyle = grad;
+              ctx.lineWidth = (3.5 + Math.sin(time * 5 + p.phase) * 1.0) * pStart.scale;
+              ctx.stroke();
+              ctx.restore();
+            }
+          });
+        };
+
+        // A3. Draw the main massive glowing Sun Core
         renderQueue.push({
           type: "sun",
           z: sunProj.z,
           renderFn: () => {
-            const size = 52 * sunProj.scale;
-            const grad = ctx.createRadialGradient(sunProj.x, sunProj.y, 0, sunProj.x, sunProj.y, size * 1.5);
-            grad.addColorStop(0, "rgba(255, 250, 240, 1)"); // burning white hot center
-            grad.addColorStop(0.2, "rgba(255, 220, 120, 0.95)"); // gold inner corona
-            grad.addColorStop(0.55, "rgba(197, 168, 92, 0.55)"); // gold outer glow
-            grad.addColorStop(1.0, "rgba(197, 168, 92, 0)");
+            // Draw Shimmering Solar Corona Rays (God rays)
+            const rayCount = 10;
+            const rayLength = 250 * sunProj.scale;
+            ctx.save();
+            ctx.globalCompositeOperation = "screen";
 
+            // Layer 1: Clockwise golden beams
+            for (let r = 0; r < rayCount; r++) {
+              const a1 = time * 0.06 + r * ((Math.PI * 2) / rayCount);
+              const a2 = a1 + 0.12;
+              ctx.beginPath();
+              ctx.moveTo(sunProj.x, sunProj.y);
+              ctx.lineTo(sunProj.x + Math.cos(a1) * rayLength, sunProj.y + Math.sin(a1) * rayLength);
+              ctx.lineTo(sunProj.x + Math.cos(a2) * rayLength, sunProj.y + Math.sin(a2) * rayLength);
+              ctx.closePath();
+
+              const rayGrad = ctx.createRadialGradient(sunProj.x, sunProj.y, 0, sunProj.x, sunProj.y, rayLength);
+              rayGrad.addColorStop(0, "rgba(197, 168, 92, 0.12)");
+              rayGrad.addColorStop(0.3, "rgba(197, 168, 92, 0.05)");
+              rayGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+              ctx.fillStyle = rayGrad;
+              ctx.fill();
+            }
+
+            // Layer 2: Counter-clockwise white-gold beams
+            for (let r = 0; r < rayCount; r++) {
+              const a1 = -time * 0.08 + r * ((Math.PI * 2) / rayCount) + 0.2;
+              const a2 = a1 + 0.08;
+              ctx.beginPath();
+              ctx.moveTo(sunProj.x, sunProj.y);
+              ctx.lineTo(sunProj.x + Math.cos(a1) * rayLength * 0.85, sunProj.y + Math.sin(a1) * rayLength * 0.85);
+              ctx.lineTo(sunProj.x + Math.cos(a2) * rayLength * 0.85, sunProj.y + Math.sin(a2) * rayLength * 0.85);
+              ctx.closePath();
+
+              const rayGrad = ctx.createRadialGradient(sunProj.x, sunProj.y, 0, sunProj.x, sunProj.y, rayLength * 0.85);
+              rayGrad.addColorStop(0, "rgba(248, 249, 250, 0.08)");
+              rayGrad.addColorStop(0.35, "rgba(197, 168, 92, 0.03)");
+              rayGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+              ctx.fillStyle = rayGrad;
+              ctx.fill();
+            }
+            ctx.restore();
+
+            // Render volumetric boiling surface layers (Composite additive blends)
+            const baseSize = 80 * sunProj.scale; // increased size (was 52)
+
+            // Layer 3 (Outer hot orange corona halo)
+            const size3 = baseSize * (1.14 + Math.sin(time * 2.8) * 0.02);
+            const grad3 = ctx.createRadialGradient(sunProj.x, sunProj.y, 0, sunProj.x, sunProj.y, size3);
+            grad3.addColorStop(0, "rgba(255, 120, 30, 0.8)");
+            grad3.addColorStop(0.65, "rgba(197, 168, 92, 0.3)");
+            grad3.addColorStop(1, "rgba(0, 0, 0, 0)");
             ctx.beginPath();
-            ctx.arc(sunProj.x, sunProj.y, size * 1.6, 0, Math.PI * 2);
-            ctx.fillStyle = grad;
+            ctx.arc(sunProj.x, sunProj.y, size3, 0, Math.PI * 2);
+            ctx.fillStyle = grad3;
             ctx.fill();
+
+            // Layer 2 (Middle gold fluid plasma)
+            const size2 = baseSize * (1.06 + Math.cos(time * 3.6) * 0.025);
+            const grad2 = ctx.createRadialGradient(sunProj.x, sunProj.y, 0, sunProj.x, sunProj.y, size2);
+            grad2.addColorStop(0, "rgba(255, 230, 100, 0.95)");
+            grad2.addColorStop(0.45, "rgba(197, 168, 92, 0.8)");
+            grad2.addColorStop(0.9, "rgba(197, 168, 92, 0.1)");
+            grad2.addColorStop(1, "rgba(0, 0, 0, 0)");
+            ctx.beginPath();
+            ctx.arc(sunProj.x, sunProj.y, size2, 0, Math.PI * 2);
+            ctx.fillStyle = grad2;
+            ctx.fill();
+
+            // Layer 1 (Inner blinding white-hot center)
+            const size1 = baseSize * (0.95 + Math.sin(time * 5.2) * 0.018);
+            ctx.beginPath();
+            ctx.arc(sunProj.x, sunProj.y, size1, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255, 252, 245, 1)";
+            ctx.fill();
+
+            // Draw prominences and spots overlaying core
+            prominenceFn();
+            spotsFn();
           }
         });
       }
 
-      // B. Add Sun Corona Flares
+      // B. Add Sun Corona Flares (Simulating Solar Wind ejections)
       flares.forEach((flare, idx) => {
         // Update life
         flare.life += flare.speed * (1.0 + currentScrollSpeed * 0.02);
         if (flare.life >= flare.maxLife) {
           flare.life = 0;
           flare.angle = Math.random() * Math.PI * 2;
-          flare.radius = 40 + Math.random() * 10;
-          flare.size = 6 + Math.random() * 14;
-          flare.maxOpacity = 0.18 + Math.random() * 0.14;
+          flare.radius = 78 + Math.random() * 12; // ejected from larger Sun core surface
+          flare.size = 8 + Math.random() * 18;
+          flare.maxOpacity = 0.16 + Math.random() * 0.14;
         }
 
         // Pulse opacity based on life phase
@@ -374,12 +534,12 @@ export default function GridBg({ className = "" }: { className?: string }) {
         flare.opacity = Math.sin(lifeP * Math.PI) * flare.maxOpacity;
         
         // Push radius outwards
-        const currentR = flare.radius + lifeP * 55;
+        const currentR = flare.radius + lifeP * 85;
 
         // Galactic coordinates of flare particle
         const fx = Math.cos(flare.angle) * currentR;
         const fz = Math.sin(flare.angle) * currentR;
-        const fy = Math.sin(time * 5 + idx) * 8; // slight 3D wiggle
+        const fy = Math.sin(time * 5 + idx) * 10; // slight 3D wiggle
 
         const fProj = project3D(fx, fy, fz);
         if (fProj.visible) {
@@ -389,7 +549,7 @@ export default function GridBg({ className = "" }: { className?: string }) {
             renderFn: () => {
               const flareSize = flare.size * fProj.scale;
               const grad = ctx.createRadialGradient(fProj.x, fProj.y, 0, fProj.x, fProj.y, flareSize);
-              grad.addColorStop(0, `rgba(${flare.color}, ${flare.opacity * 0.9})`);
+              grad.addColorStop(0, `rgba(${flare.color}, ${flare.opacity * 0.95})`);
               grad.addColorStop(0.5, `rgba(${flare.color}, ${flare.opacity * 0.3})`);
               grad.addColorStop(1, "rgba(0, 0, 0, 0)");
 
